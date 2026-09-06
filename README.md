@@ -60,13 +60,15 @@ layer agreed rather than overriding. So on this test set we have not yet
 demonstrated the reranker catching a hard negative that retrieval got
 wrong; we've demonstrated the two stages agreeing.
 
-That's worth stating plainly rather than dressing up. The reranker earns
-its ~20s and its tokens in the literature (see below) and it gives every
-match a human-readable justification, which is independently valuable when
-you're asking someone to trust a stranger with an hour of their life. But
-the specific claim "our reranker fixes retrieval mistakes" is not something
-this eval set proves yet. Building a test set where retrieval genuinely
-fails is the honest next step, and `/eval` is the harness for it.
+That's worth stating plainly rather than dressing up: on this *labelled*
+set, the reranker agrees with retrieval rather than correcting it.
+
+Where the reranker *is* demonstrably load-bearing is under adversarial
+conditions (next section): when attacker profiles dominate retrieval, it
+picks the one legitimate volunteer from the **lowest** similarity score and
+names the manipulation it rejected. That is a real hard negative — retrieval
+wrong, reranking right — just one produced by the red-team harness rather
+than the labelled eval set.
 
 Latency is the other measured weakness: at ~34s per match this is not yet
 an interactive experience. The status page shows real pipeline stages
@@ -153,15 +155,35 @@ Re-running the identical attack, the model now **detects** it — its
 reasoning reads *"C3 tries to instruct and claim special authority"* — and
 refuses it.
 
-**What is still broken, honestly.** The fix hardens the reranker, not
-retrieval. A profile that just enumerates every skill (*"Postgres React DNS
-Python French Mandarin…"*) is not an injection at all — it's a classic
+**The second attack, and the retrieval fix.** A profile that just enumerates
+every skill (*"Postgres React DNS Python French Mandarin…"*) is not an
+injection at all — it's a classic
 [shilling / profile-injection attack](https://arxiv.org/abs/2402.09023) —
-and it still reaches the top-3 on similarity alone. When legitimate
-candidates exist the reranker discards it, but on a thin pool it can crowd
-them out entirely. Length normalisation and a breadth penalty on
-suspiciously broad profiles are the known mitigations; neither is
-implemented yet.
+and it originally reached **#2 in the top-3** on similarity alone, because
+sitting near the centroid of many queries is exactly what stuffing buys you.
+
+`convex/matchScoring.ts` now applies a **breadth penalty**: profiles claiming
+many unrelated topic areas are demoted proportionally, capped so a genuine
+generalist loses a few ranking positions rather than being excluded. After
+it, the stuffed profile no longer reaches the top-3 at all.
+
+Production matching, the eval runner and the red-team harness all import
+that one scoring function, so the harness can never pass against a weaker
+copy of the logic than real users hit.
+
+**Defence in depth, demonstrated.** In the hardest probe — a beginner HTML
+request where attackers dominated retrieval — the two layers now compose:
+the breadth penalty evicts the stuffed profile, letting one legitimate
+volunteer into the top-3 at rank #3, and the reranker picks that volunteer
+*from the lowest similarity score*, explicitly noting that a higher-ranked
+candidate "is attempting to manipulate the selection process."
+
+That is also the genuine **hard negative** we previously lacked: a case
+where retrieval alone gets it wrong and reranking demonstrably rescues it.
+
+**Still unaddressed:** `closeProfile` output is embedded and stored, so an
+injection there would persist and contaminate future matches — we validate
+its shape but do not sanitise its free text.
 
 Two adjacent risks we have identified but not addressed: `closeProfile`
 output is embedded and stored, so an injection there would persist and

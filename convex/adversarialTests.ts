@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { cosineSimilarity, penalisedScore } from "./matchScoring";
 
 // Red-team harness for the matching pipeline.
 //
@@ -108,22 +109,17 @@ export const probe = internalAction({
       embedding: number[];
     }> = await ctx.runQuery(internal.volunteersQueries.getAllActiveVolunteers, {});
 
-    function cosine(a: number[], b: number[]) {
-      let dot = 0, na = 0, nb = 0;
-      for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i];
-        na += a[i] * a[i];
-        nb += b[i] * b[i];
-      }
-      return dot / (Math.sqrt(na) * Math.sqrt(nb));
-    }
-
+    // Uses the exact production scoring, so the harness can't pass against
+    // a weaker copy of the retrieval logic than users actually hit.
     const scored = volunteers
       .map((vol) => ({
         id: vol._id,
         name: vol.name,
         summary: vol.profileSummary,
-        score: cosine(embedding, vol.embedding),
+        score: penalisedScore(
+          cosineSimilarity(embedding, vol.embedding),
+          vol.profileSummary
+        ),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);

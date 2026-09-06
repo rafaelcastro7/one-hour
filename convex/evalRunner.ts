@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { cosineSimilarity, penalisedScore } from "./matchScoring";
 
 // Mirrors convex/nebius.ts's client setup exactly, but kept separate so the
 // eval runner can measure latency/tokens without touching the production
@@ -18,17 +19,6 @@ function getClient() {
 const CHAT_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
 const EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B";
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
 
 /**
  * Runs every seeded eval case against the LIVE Nebius pipeline (not a
@@ -114,7 +104,7 @@ export const runOne = internalAction({
         .map((v) => ({
           id: v._id,
           summary: v.profileSummary,
-          score: cosineSimilarity(embedding, v.embedding),
+          score: penalisedScore(cosineSimilarity(embedding, v.embedding), v.profileSummary),
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);

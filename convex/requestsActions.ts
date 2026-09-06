@@ -3,18 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
+import { cosineSimilarity, penalisedScore } from "./matchScoring";
 
 // Full pipeline: closes the need profile, generates its embedding, finds
 // the top-K candidates by similarity, and calls the LLM decision layer to
@@ -63,12 +52,16 @@ export const buildAndMatch = internalAction({
       return;
     }
 
-    // Top-K por similaridad de coseno (K=3) antes de pasarle la decisión al LLM
+    // Top-K by cosine similarity (K=3) before handing the decision to the
+    // LLM. The score is breadth-penalised: profiles that claim every skill
+    // at once otherwise reach the top-K for every query and crowd out real
+    // volunteers. See convex/matchScoring.ts and the harness in
+    // convex/adversarialTests.ts that demonstrates the attack.
     const scored = volunteers
       .map((v) => ({
         id: v._id,
         summary: v.profileSummary,
-        score: cosineSimilarity(embedding, v.embedding),
+        score: penalisedScore(cosineSimilarity(embedding, v.embedding), v.profileSummary),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
