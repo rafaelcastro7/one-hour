@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adversarialTests from "../adversarialTests.js";
 import type * as evalRunner from "../evalRunner.js";
 import type * as evaluation from "../evaluation.js";
 import type * as nebius from "../nebius.js";
@@ -27,6 +28,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adversarialTests: typeof adversarialTests;
   evalRunner: typeof evalRunner;
   evaluation: typeof evaluation;
   nebius: typeof nebius;

@@ -25,6 +25,23 @@ export const insertSeedVolunteer = internalMutation({
   },
 });
 
+// Removes the red-team fixtures seeded by convex/adversarialTests.ts so
+// they can never leak into a real matching run.
+export const deleteAdversarialTests = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("volunteers").collect();
+    let deleted = 0;
+    for (const vol of all) {
+      if (vol.name.startsWith("ADVERSARIAL TEST")) {
+        await ctx.db.delete(vol._id);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+});
+
 export const saveProfile = internalMutation({
   args: {
     volunteerId: v.id("volunteers"),
