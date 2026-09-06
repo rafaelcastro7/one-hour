@@ -248,11 +248,13 @@ for tech or language help and is not a professional or emergency service,
 routes anyone in crisis to real help
 ([findahelpline.com](https://findahelpline.com), country-specific lines),
 and requires acknowledging the role boundary before continuing. This is the
-requester-side half of what serious platforms do. The volunteer-side half —
-a no-blame exit and a referral script for when a session turns out to
-exceed what an hour of help can cover — is not built yet, and is a large
-part of why launch categories are tech and languages rather than anything
-closer to health.
+requester-side half of what serious platforms do. The volunteer-side half
+is now there too: after registering, a volunteer sees an explicit no-blame
+boundary note — if a session turns out to need medical, legal, or
+mental-health support, the right move is to step back and point to
+professional help, not to push through it. Launch categories stay tech and
+languages rather than anything closer to health precisely because these are
+guardrails, not a substitute for real qualification.
 
 If we measured match quality properly we'd ask **both** parties, using a
 validated short instrument like the four-item

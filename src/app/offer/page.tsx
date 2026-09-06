@@ -77,13 +77,36 @@ export default function OfferPage() {
       )}
 
       {step === "done" && (
-        <div className="text-center max-w-sm space-y-3">
+        <div className="text-center max-w-md space-y-4">
           <p className="text-lg">Thank you! Your profile is under review.</p>
           <p className="text-sm text-neutral-400">
             A human admin verifies every volunteer before activation, to make
             sure the person asking for help is in good hands. We&apos;ll email
             you as soon as you&apos;re active.
           </p>
+          {/* Volunteer-side of the safety gap: an explicit no-blame exit, so
+              a volunteer who lands in a session beyond tech/language help
+              knows the right move is to step back and point to real support,
+              not to push through something they're not equipped for. */}
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 text-left text-sm text-neutral-300 space-y-2">
+            <p className="font-medium">A note on boundaries</p>
+            <p className="text-neutral-400">
+              You&apos;re here to help with tech or language practice. If a
+              conversation turns out to need medical, legal, or mental-health
+              support, that&apos;s not on you to carry — it&apos;s completely
+              okay to gently end the session and point the person to{" "}
+              <a
+                href="https://findahelpline.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 underline"
+              >
+                professional help
+              </a>
+              . Stepping back when something is out of scope is the right call,
+              not a failure.
+            </p>
+          </div>
         </div>
       )}
     </main>

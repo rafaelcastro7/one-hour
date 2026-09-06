@@ -32,6 +32,23 @@ export default function Home() {
         AI agent (Nebius Token Factory) based on what you tell us, not rigid
         forms.
       </p>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center text-xs text-neutral-500">
+        <Link href="/eval" className="hover:text-amber-400 underline underline-offset-2">
+          Accuracy, latency & cost
+        </Link>
+        <Link href="/admin" className="hover:text-amber-400 underline underline-offset-2">
+          Volunteer approval
+        </Link>
+        <a
+          href="https://github.com/rafaelcastro7/one-hour"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-amber-400 underline underline-offset-2"
+        >
+          How it works (code & write-up)
+        </a>
+      </div>
     </main>
   );
 }
