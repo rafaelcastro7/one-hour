@@ -1,0 +1,22 @@
+# Render deployment for the One Hour frontend.
+#
+# The Convex backend is deployed separately with `npx convex deploy`; this
+# service only needs the resulting production URL. Set NEXT_PUBLIC_CONVEX_URL
+# in the Render dashboard (it is public by design — it's the client-side
+# endpoint — but it changes per deployment, so it is not committed here).
+#
+# The Nebius and Daily keys are NOT set here. They are read server-side
+# inside Convex actions, so they belong on the Convex deployment
+# (`npx convex env set ...`), never in the frontend environment.
+services:
+  - type: web
+    name: one-hour
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
