@@ -5,70 +5,70 @@ import { use } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-export default function EstadoPage({ params }: { params: Promise<{ id: string }> }) {
+export default function StatusPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const request = useQuery(api.requests.get, { requestId: id as Id<"requests"> });
   const confirmMatch = useMutation(api.requests.confirmMatch);
 
   if (request === undefined) {
-    return <Centered>Cargando...</Centered>;
+    return <Centered>Loading...</Centered>;
   }
 
   if (request === null) {
-    return <Centered>No encontramos esa solicitud.</Centered>;
+    return <Centered>We couldn&apos;t find that request.</Centered>;
   }
 
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 gap-6 bg-neutral-950 text-neutral-50 text-center">
-      {request.status === "buscando" && (
+      {request.status === "searching" && (
         <>
           <Spinner />
-          <p className="text-lg">Buscando a la persona correcta para vos...</p>
+          <p className="text-lg">Finding the right person for you...</p>
           <p className="text-sm text-neutral-500 max-w-sm">{request.needSummary}</p>
         </>
       )}
 
-      {request.status === "sin_match" && (
+      {request.status === "no_match" && (
         <>
-          <p className="text-lg">No encontramos a nadie disponible ahora mismo.</p>
+          <p className="text-lg">We couldn&apos;t find anyone available right now.</p>
           <p className="text-sm text-neutral-500 max-w-sm">
-            {request.matchReasoning ?? "Probá de nuevo más tarde, seguimos sumando voluntarios."}
+            {request.matchReasoning ?? "Try again later, we keep adding volunteers."}
           </p>
         </>
       )}
 
-      {request.status === "match_encontrado" && request.volunteer && (
+      {request.status === "match_found" && request.volunteer && (
         <>
-          <p className="text-lg">¡Encontramos un match!</p>
+          <p className="text-lg">We found a match!</p>
           <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-6 max-w-sm text-left space-y-2">
             <p className="font-semibold">{request.volunteer.name}</p>
             <p className="text-sm text-neutral-400">{request.volunteer.profileSummary}</p>
             <p className="text-xs text-neutral-600 mt-2">
-              Similaridad: {(request.matchScore! * 100).toFixed(0)}% — {request.matchReasoning}
+              Similarity: {(request.matchScore! * 100).toFixed(0)}% — {request.matchReasoning}
             </p>
           </div>
           <button
             onClick={() => confirmMatch({ requestId: id as Id<"requests"> })}
             className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
           >
-            Confirmar y agendar videollamada
+            Confirm and schedule the call
           </button>
         </>
       )}
 
-      {request.status === "confirmado" && (
+      {request.status === "confirmed" && (
         <>
-          <p className="text-lg">¡Match confirmado!</p>
+          <p className="text-lg">Match confirmed!</p>
           {request.roomUrl ? (
             <a
               href={request.roomUrl}
               target="_blank"
               className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
             >
-              Entrar a la videollamada
+              Join the video call
             </a>
           ) : (
-            <p className="text-sm text-neutral-500">Generando tu sala de videollamada...</p>
+            <p className="text-sm text-neutral-500">Generating your video call room...</p>
           )}
         </>
       )}

@@ -8,7 +8,7 @@ export const register = mutation({
   args: {
     name: v.string(),
     email: v.string(),
-    category: v.union(v.literal("tech"), v.literal("idiomas")),
+    category: v.union(v.literal("tech"), v.literal("languages")),
     rawOffer: v.string(),
     history: v.array(
       v.object({
@@ -77,7 +77,7 @@ export const approve = mutation({
 });
 
 export const listActive = query({
-  args: { category: v.optional(v.union(v.literal("tech"), v.literal("idiomas"))) },
+  args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },
   handler: async (ctx, { category }) => {
     let q = ctx.db.query("volunteers").filter((qq) => qq.eq(qq.field("active"), true));
     const all = await q.collect();

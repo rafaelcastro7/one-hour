@@ -30,7 +30,7 @@ export const runIntakeStep = action({
         content: v.string(),
       })
     ),
-    mode: v.union(v.literal("need"), v.literal("offer")), // pide ayuda vs. ofrece ayuda
+    mode: v.union(v.literal("need"), v.literal("offer")), // asks for help vs. offers help
   },
   handler: async (ctx, { history, mode }) => {
     const client = getClient();

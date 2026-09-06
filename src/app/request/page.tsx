@@ -8,7 +8,7 @@ import { IntakeChat } from "@/components/IntakeChat";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-export default function PedirPage() {
+export default function RequestPage() {
   const createRequest = useMutation(api.requests.create);
   const router = useRouter();
 
@@ -16,19 +16,19 @@ export default function PedirPage() {
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [category, setCategory] = useState<"tech" | "idiomas">("tech");
+  const [category, setCategory] = useState<"tech" | "languages">("tech");
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
     setSubmitting(true);
     const rawNeed = history.filter((m) => m.role === "user").map((m) => m.content).join(" ");
     const id = await createRequest({ name, email, category, rawNeed, history });
-    router.push(`/estado/${id}`);
+    router.push(`/status/${id}`);
   }
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-8 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">Contanos qué necesitás</h1>
+      <h1 className="text-2xl font-bold">Tell us what you need</h1>
 
       {step === "chat" && (
         <IntakeChat
@@ -43,17 +43,17 @@ export default function PedirPage() {
       {step === "form" && (
         <div className="flex flex-col gap-4 w-full max-w-sm">
           <p className="text-sm text-neutral-400">
-            Ya entendimos qué necesitás. Un último paso para buscarte el match:
+            Got it. One last step to find your match:
           </p>
           <input
             className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
-            placeholder="Tu nombre"
+            placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <input
             className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
-            placeholder="Tu email"
+            placeholder="Your email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -61,17 +61,17 @@ export default function PedirPage() {
           <select
             className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
             value={category}
-            onChange={(e) => setCategory(e.target.value as "tech" | "idiomas")}
+            onChange={(e) => setCategory(e.target.value as "tech" | "languages")}
           >
-            <option value="tech">Tecnología</option>
-            <option value="idiomas">Idiomas</option>
+            <option value="tech">Tech</option>
+            <option value="languages">Languages</option>
           </select>
           <button
             onClick={submit}
             disabled={submitting || !name || !email}
             className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-50"
           >
-            {submitting ? "Buscando tu match..." : "Buscar mi match"}
+            {submitting ? "Finding your match..." : "Find my match"}
           </button>
         </div>
       )}

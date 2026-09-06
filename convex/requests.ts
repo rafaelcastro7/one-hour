@@ -6,7 +6,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     email: v.string(),
-    category: v.union(v.literal("tech"), v.literal("idiomas")),
+    category: v.union(v.literal("tech"), v.literal("languages")),
     rawNeed: v.string(),
     history: v.array(
       v.object({
@@ -23,7 +23,7 @@ export const create = mutation({
       rawNeed: args.rawNeed,
       needSummary: "",
       embedding: [],
-      status: "buscando",
+      status: "searching",
       createdAt: Date.now(),
     });
 
@@ -36,8 +36,8 @@ export const create = mutation({
   },
 });
 
-// El estado de una solicitud en vivo -- esto es lo que el frontend
-// suscribe para ver la reactividad de Convex (buscando -> match encontrado).
+// Live status of a request -- this is what the frontend subscribes to
+// in order to see Convex's reactivity (searching -> match found).
 export const get = query({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
@@ -53,7 +53,7 @@ export const get = query({
 export const confirmMatch = mutation({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
-    await ctx.db.patch(requestId, { status: "confirmado" });
+    await ctx.db.patch(requestId, { status: "confirmed" });
     await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
   },
 });
@@ -62,11 +62,11 @@ export const updateStatus = internalMutation({
   args: {
     requestId: v.id("requests"),
     status: v.union(
-      v.literal("buscando"),
-      v.literal("match_encontrado"),
-      v.literal("confirmado"),
-      v.literal("completado"),
-      v.literal("sin_match")
+      v.literal("searching"),
+      v.literal("match_found"),
+      v.literal("confirmed"),
+      v.literal("completed"),
+      v.literal("no_match")
     ),
     matchedVolunteerId: v.optional(v.id("volunteers")),
     matchScore: v.optional(v.number()),

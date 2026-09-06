@@ -10,16 +10,16 @@ export default function AdminPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-6 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">Aprobación de voluntarios</h1>
+      <h1 className="text-2xl font-bold">Volunteer approval</h1>
       <p className="text-sm text-neutral-400 max-w-md text-center">
-        Gate manual humano: verificá que cada persona sea quien dice ser antes
-        de activarla, especialmente en categorías sensibles.
+        Manual human gate: verify each person is who they say they are before
+        activating them, especially in sensitive categories.
       </p>
 
       <div className="w-full max-w-2xl flex flex-col gap-4">
-        {pending === undefined && <p className="text-neutral-500">Cargando...</p>}
+        {pending === undefined && <p className="text-neutral-500">Loading...</p>}
         {pending?.length === 0 && (
-          <p className="text-neutral-500">No hay voluntarios pendientes.</p>
+          <p className="text-neutral-500">No volunteers pending approval.</p>
         )}
         {pending?.map((v) => (
           <div
@@ -37,7 +37,7 @@ export default function AdminPage() {
               onClick={() => approve({ volunteerId: v._id as Id<"volunteers"> })}
               className="shrink-0 rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2 text-sm"
             >
-              Aprobar
+              Approve
             </button>
           </div>
         ))}

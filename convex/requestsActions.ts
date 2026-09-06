@@ -16,9 +16,9 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Pipeline completo: cierra el perfil de la necesidad, genera embedding,
-// busca los top-K candidatos por similaridad, y llama a la capa de decisión
-// del LLM para elegir el match final -- esta es la pieza central del producto.
+// Full pipeline: closes the need profile, generates its embedding, finds
+// the top-K candidates by similarity, and calls the LLM decision layer to
+// pick the final match -- this is the core piece of the product.
 export const buildAndMatch = internalAction({
   args: {
     requestId: v.id("requests"),
@@ -41,7 +41,7 @@ export const buildAndMatch = internalAction({
 
     await ctx.runMutation(internal.requests.updateStatus, {
       requestId,
-      status: "buscando",
+      status: "searching",
       needSummary: profile.summary,
       embedding,
     });
@@ -58,7 +58,7 @@ export const buildAndMatch = internalAction({
     if (volunteers.length === 0) {
       await ctx.runMutation(internal.requests.updateStatus, {
         requestId,
-        status: "sin_match",
+        status: "no_match",
       });
       return;
     }
@@ -81,7 +81,7 @@ export const buildAndMatch = internalAction({
     if (!decision.chosenId) {
       await ctx.runMutation(internal.requests.updateStatus, {
         requestId,
-        status: "sin_match",
+        status: "no_match",
         matchReasoning: decision.reasoning,
       });
       return;
@@ -91,7 +91,7 @@ export const buildAndMatch = internalAction({
 
     await ctx.runMutation(internal.requests.updateStatus, {
       requestId,
-      status: "match_encontrado",
+      status: "match_found",
       matchedVolunteerId: decision.chosenId as any,
       matchScore: chosen?.score ?? 0,
       matchReasoning: decision.reasoning,
@@ -99,11 +99,11 @@ export const buildAndMatch = internalAction({
   },
 });
 
-// Genera la sala de videollamada via Daily.co al confirmar el match.
+// Generates the video call room via Daily.co once the match is confirmed.
 export const createRoom = internalAction({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
-    const roomName = `una-hora-${requestId.slice(0, 8)}-${Date.now()}`;
+    const roomName = `one-hour-${requestId.slice(0, 8)}-${Date.now()}`;
 
     const res = await fetch("https://api.daily.co/v1/rooms", {
       method: "POST",
@@ -114,7 +114,7 @@ export const createRoom = internalAction({
       body: JSON.stringify({
         name: roomName,
         properties: {
-          exp: Math.round(Date.now() / 1000) + 60 * 60 * 2, // expira en 2hs
+          exp: Math.round(Date.now() / 1000) + 60 * 60 * 2, // expires in 2h
           enable_chat: true,
         },
       }),
