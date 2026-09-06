@@ -45,20 +45,33 @@ the busywork.
 5. On confirmation, a Convex action calls the Daily.co API and the room
    URL appears live on both sides' screens via Convex's reactivity.
 
-### Why this isn't "just an LLM wrapper"
+### What the evaluation actually shows
 
-Cosine similarity alone is wrong often enough that it's not a safe default
-for something as personal as "who do I trust with an hour of my time."
-`/eval` runs a live, labeled test set against this exact pipeline and
-surfaces the case that proves it: someone asks for a **technical review of
-French UI copy** (button labels, error messages), not conversation
-practice. By wording alone, the closest embedding match is a volunteer who
-offers *French conversation practice* — a plausible-sounding but wrong
-pick. The second LLM call, given the actual candidates and their
-similarity scores, overrides that and picks the volunteer who does
-technical translation review instead, and explains why. That override is
-the whole reason the decision layer exists, and `/eval` shows it happening
-on real API calls, not a canned example.
+`/eval` runs a labeled test set against this exact pipeline on real API
+calls, and reports accuracy, latency and token cost per run. On the
+current demo pool it scores **10/10 on category routing, ~34s median
+end-to-end latency, ~490 tokens per match**.
+
+**An honest result:** the adversarial case we designed — someone asking for
+a *technical review of French UI copy* rather than conversation practice,
+in a pool that also contains two general French conversation volunteers —
+was picked correctly **by embedding similarity alone**. The LLM decision
+layer agreed rather than overriding. So on this test set we have not yet
+demonstrated the reranker catching a hard negative that retrieval got
+wrong; we've demonstrated the two stages agreeing.
+
+That's worth stating plainly rather than dressing up. The reranker earns
+its ~20s and its tokens in the literature (see below) and it gives every
+match a human-readable justification, which is independently valuable when
+you're asking someone to trust a stranger with an hour of their life. But
+the specific claim "our reranker fixes retrieval mistakes" is not something
+this eval set proves yet. Building a test set where retrieval genuinely
+fails is the honest next step, and `/eval` is the harness for it.
+
+Latency is the other measured weakness: at ~34s per match this is not yet
+an interactive experience. The status page shows real pipeline stages
+instead of one opaque spinner, but that mitigates the wait rather than
+fixing it.
 
 `/eval` also reports accuracy, average pipeline latency, and average token
 cost across the labeled set on every run. Which model does which job is a

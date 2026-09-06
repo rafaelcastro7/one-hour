@@ -59,19 +59,28 @@ export default function EvalPage() {
       {adversarial && adversarial.lastRunAt && (
         <div className="w-full max-w-2xl bg-neutral-900 border border-amber-400/40 rounded-xl p-6 space-y-4">
           <p className="text-xs uppercase tracking-wide text-amber-400 font-semibold">
-            Adversarial case -- where cosine similarity alone gets it wrong
+            Adversarial case — retrieval vs. reranker
           </p>
+          {adversarial.topCandidateByCosineOnly === adversarial.chosenByLLM && (
+            <p className="text-xs text-neutral-400 bg-neutral-950 border border-neutral-800 rounded-lg p-3">
+              On this run both stages picked the same volunteer: retrieval got
+              it right on its own and the reranker agreed. We have not yet
+              built a case where retrieval genuinely fails — this panel is the
+              harness for that, and shows agreement honestly rather than
+              implying a save that didn&apos;t happen.
+            </p>
+          )}
           <p className="text-sm text-neutral-300">{adversarial.needText}</p>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="bg-neutral-950 border border-red-500/30 rounded-lg p-4">
-              <p className="text-xs text-red-400 font-semibold mb-1">
-                Pure cosine similarity would pick
+            <div className="bg-neutral-950 border border-neutral-700 rounded-lg p-4">
+              <p className="text-xs text-neutral-400 font-semibold mb-1">
+                Retrieval alone (top cosine match)
               </p>
               <p className="text-sm text-neutral-300">{adversarial.topCandidateByCosineOnly}</p>
             </div>
             <div className="bg-neutral-950 border border-emerald-500/30 rounded-lg p-4">
               <p className="text-xs text-emerald-400 font-semibold mb-1">
-                LLM decision layer actually picks
+                After LLM reranking
               </p>
               <p className="text-sm text-neutral-300">{adversarial.chosenByLLM}</p>
             </div>

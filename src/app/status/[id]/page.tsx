@@ -24,7 +24,23 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
         <>
           <Spinner />
           <p className="text-lg">Finding the right person for you...</p>
-          <p className="text-sm text-neutral-500 max-w-sm">{request.needSummary}</p>
+          {/* The pipeline takes ~35s across two LLM calls, so show which
+              stage we're actually in rather than one opaque spinner.
+              needSummary lands the moment the first call returns, which is
+              what lets us tell the two apart without extra backend state. */}
+          {request.needSummary ? (
+            <div className="max-w-sm space-y-3">
+              <Stage done label="Understood what you need" />
+              <p className="text-sm text-neutral-400 italic">
+                &ldquo;{request.needSummary}&rdquo;
+              </p>
+              <Stage label="Comparing against available volunteers" />
+            </div>
+          ) : (
+            <div className="max-w-sm space-y-3">
+              <Stage label="Reading your conversation" />
+            </div>
+          )}
         </>
       )}
 
@@ -81,6 +97,17 @@ function Centered({ children }: { children: React.ReactNode }) {
     <main className="flex-1 flex items-center justify-center bg-neutral-950 text-neutral-50">
       {children}
     </main>
+  );
+}
+
+function Stage({ label, done }: { label: string; done?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className={done ? "text-emerald-400" : "text-neutral-600"}>
+        {done ? "✓" : "○"}
+      </span>
+      <span className={done ? "text-neutral-300" : "text-neutral-500"}>{label}</span>
+    </div>
   );
 }
 
