@@ -15,7 +15,7 @@ function getClient() {
 }
 
 const CHAT_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
-const EMBEDDING_MODEL = "BAAI/bge-multilingual-gemma2";
+const EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B";
 
 /**
  * Short conversational interview: given the message history with the user,
