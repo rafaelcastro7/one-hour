@@ -8,6 +8,24 @@ conversation with an AI agent turns what you said into a structured profile,
 matches it semantically against the volunteer pool, and generates a video
 call the moment both sides confirm.
 
+## At a glance
+
+- **What it does.** Conversational intake → structured profile → semantic
+  retrieval → an LLM reranker picks the match and says why → a real video
+  room on confirm. Multilingual (answers in the language you write in).
+- **Measured, not claimed.** A live eval (`/eval`) runs a labelled set
+  against the real Nebius pipeline: **10/10 routing, ~34s per match, ~490
+  tokens per match**, on production.
+- **We attacked our own system.** A red-team harness found a working prompt
+  injection that hijacked matching, and a keyword-stuffing attack that beat
+  real volunteers on similarity. Both are fixed and regression-tested; the
+  writeup below shows exactly what broke and what didn't.
+- **Honest about limits.** One-sided utility, a measured linguistic-bias
+  signal, and a safety model that vets volunteers but not sessions — all
+  documented rather than hidden.
+- **Stack.** Next.js · Convex · Nebius Token Factory (Llama-3.3-70B +
+  Qwen3-Embedding-8B) · Daily.co.
+
 ## Why
 
 Time banking and skill-based volunteering already work as an economic model
@@ -82,47 +100,6 @@ deliberate cost/latency split, not an arbitrary choice:
 judgment call that actually needs a large model, while the much cheaper
 `Qwen/Qwen3-Embedding-8B` handles the initial narrowing pass over the
 whole volunteer pool.
-
-## Getting started
-
-```bash
-npm install
-npx convex dev   # starts a local Convex deployment, writes .env.local
-npm run dev      # in a second terminal
-```
-
-You'll need a `NEBIUS_API_KEY` (from [Nebius Token Factory](https://tokenfactory.nebius.com))
-and a `DAILY_API_KEY` (from [Daily.co](https://daily.co), free tier is enough)
-set as Convex environment variables:
-
-```bash
-npx convex env set NEBIUS_API_KEY sk-...
-npx convex env set DAILY_API_KEY ...
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Project structure
-
-```
-convex/
-  schema.ts              # data model: volunteers, requests, eval cases
-  nebius.ts               # LLM pipeline: intake, profile closing, embeddings, decision
-  volunteers.ts           # volunteer registration + manual approval gate
-  volunteersActions.ts    # Node-runtime actions for volunteer profile building
-  volunteersMutations.ts  # DB writes for volunteer profiles
-  volunteersQueries.ts    # active-volunteer lookups (used inside actions)
-  requests.ts             # help request lifecycle + status
-  requestsActions.ts      # matching pipeline + Daily.co room creation
-  evaluation.ts           # accuracy tracking against a small labeled test set
-
-src/app/
-  page.tsx                # landing
-  request/                # "I need help" flow
-  offer/                  # "I want to help" flow
-  status/[id]/            # live match status (Convex reactivity)
-  admin/                  # manual volunteer approval panel
-```
 
 ## Adversarial testing (we broke it, then fixed part of it)
 
@@ -311,3 +288,59 @@ the lens we'd use if this became a research question rather than a product.
 - **Semantic matching isn't perfect.** See the evaluation results in the
   demo for a documented case where the embedding-only similarity would have
   picked the wrong match, and how the LLM decision layer catches it.
+
+## Getting started
+
+```bash
+npm install
+npx convex dev   # starts a local Convex deployment, writes .env.local
+npm run dev      # in a second terminal
+npm test         # scoring-defence unit tests
+```
+
+`NEBIUS_API_KEY` and `DAILY_API_KEY` are read server-side inside Convex
+actions, so set them on the deployment, not in `.env.local`:
+
+```bash
+npx convex env set NEBIUS_API_KEY ...
+npx convex env set DAILY_API_KEY ...
+```
+
+Seed the database or the app looks empty:
+
+```bash
+npx convex run seedEvalCases:seed '{}'
+npx convex run seedVolunteers:seed '{}'
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Project structure
+
+```
+convex/
+  schema.ts               # data model: volunteers, requests, eval cases
+  nebius.ts               # LLM pipeline: intake, profile closing, embeddings, reranker
+  matchScoring.ts         # cosine similarity + breadth penalty (shared everywhere)
+  matchScoring.test.ts    # unit tests for the scoring defence
+  requests.ts             # help request lifecycle + status
+  requestsActions.ts      # matching pipeline + Daily.co room creation (with retries)
+  volunteers*.ts          # registration, manual approval gate, queries, mutations
+  evaluation.ts           # accuracy/latency/cost tracking
+  evalRunner.ts           # runs the labelled set against the live pipeline
+  seedEvalCases.ts        # labelled eval set (incl. the adversarial case)
+  seedVolunteers.ts       # synthetic demo pool (approved + pending)
+  adversarialTests.ts     # red-team harness: seed attackers, probe, purge
+  biasAudit.ts            # native vs non-native phrasing comparison
+
+src/app/
+  page.tsx                # landing (links to the evidence)
+  request/                # "I need help" flow (opens with a safety screen)
+  offer/                  # "I want to help" flow
+  status/[id]/            # live match status (Convex reactivity, staged progress)
+  eval/                   # accuracy / latency / cost dashboard
+  admin/                  # manual volunteer approval panel
+src/components/
+  IntakeChat.tsx          # conversational intake
+  SafetyScreen.tsx        # pre-session role-boundary + crisis routing
+```
