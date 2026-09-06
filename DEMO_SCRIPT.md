@@ -114,9 +114,9 @@ inflate.
 
 | Claim | Value |
 |---|---|
-| Eval accuracy (routing) | 10/10 |
-| Mean latency | ~34s |
-| Mean tokens per match | ~490 |
+| Eval accuracy (routing) | 10/10 (verified on **production**) |
+| Mean latency | 33.7s (production) |
+| Mean tokens per match | 496.7 (production) |
 | Volunteers in demo pool | 10 (synthetic, labelled) |
 | Injection attack pre-fix | Won the match from the lowest score |
 | Keyword stuffing pre-fix | Reached rank #2 |
