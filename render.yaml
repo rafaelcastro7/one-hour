@@ -5,6 +5,12 @@
 # in the Render dashboard (it is public by design — it's the client-side
 # endpoint — but it changes per deployment, so it is not committed here).
 #
+# IMPORTANT: use the PRODUCTION Convex URL:
+#     https://energized-retriever-599.convex.cloud
+# Not the one in .env.local — that is the dev deployment, which has its own
+# separate data and env vars. Pointing Render at dev gives an app with no
+# volunteers and no API keys.
+#
 # The Nebius and Daily keys are NOT set here. They are read server-side
 # inside Convex actions, so they belong on the Convex deployment
 # (`npx convex env set ...`), never in the frontend environment.
