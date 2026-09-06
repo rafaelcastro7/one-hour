@@ -75,13 +75,15 @@ track selected with evidence text. Still empty:
       legitimate volunteer from rank #3 while naming the manipulation.
 - [x] Side effect: this produced the genuine hard negative P2-1 wanted.
 
-### P1-2. Linguistic bias audit
-Our sharpest fairness risk (Liang et al. 2023: non-native text has lower
-lexical richness → weaker embedding → worse rank). Cheap to measure.
-- [ ] Add eval cases written in simplified/non-native English expressing the
-      *same* needs as existing cases.
-- [ ] Compare mean rank of the correct volunteer across both phrasings.
-- [ ] Publish the delta in `/eval` — honest either way.
+### P1-2. Linguistic bias audit — **DONE (measured, partial finding)**
+- [x] `convex/biasAudit.ts`: 5 needs in native vs non-native phrasing.
+- [x] Result: mean rank delta **0**, none lost top-3, but similarity score
+      **lower in 5 of 5** by 2–7 points, always same direction.
+- [x] Documented honestly in README as "no rank change at this scale",
+      not "no bias" — a consistent one-sided penalty is what flips
+      orderings on a denser pool.
+- [ ] Re-run as the volunteer pool grows (audit is committed and repeatable).
+- [ ] Optional: surface the audit in `/eval` alongside accuracy.
 
 ### P1-3. Latency
 ~34s per match, two sequential ~20s Nebius calls. Status page now shows real

@@ -211,14 +211,30 @@ That has measurable consequences documented in the literature:
   (e.g. Gini), not mean relevance — see
   [Kaminskas & Bridge](https://dl.acm.org/doi/10.1145/2926720) on
   beyond-accuracy objectives.
-- **Linguistic bias is our most concrete fairness risk.**
+- **Linguistic bias — audited, with a partial finding.**
   [Liang et al. (2023, *Patterns*)](https://www.cell.com/patterns/fulltext/S2666-3899(23)00130-7)
-  found over half of non-native English texts misclassified by GPT
-  detectors, driven by lower lexical richness. The same property makes a
-  non-native speaker's profile a less distinctive embedding, and plausibly a
-  worse match. Auditing this is cheap — stratify profiles by text length and
-  declared native language, compare match rate and mean rank — and we
-  haven't done it.
+  found over half of non-native English writing misclassified by GPT
+  detectors, driven by lower lexical richness. If the same property weakens
+  our embeddings, a multilingual volunteering platform would quietly serve
+  non-native speakers worse — exactly the people it exists for.
+
+  `convex/biasAudit.ts` measures it: five needs written twice, fluent native
+  phrasing versus simpler second-language phrasing, same need and same
+  correct volunteer. Result across five pairs:
+
+  | Metric | Result |
+  |---|---|
+  | Mean rank change | **0** — the correct volunteer stayed rank 1 in all 5 |
+  | Cases that lost top-3 | **0 of 5** |
+  | Similarity score | **lower in 5 of 5**, by 2–7 points |
+
+  So ranking held, but the margin narrowed *every single time* and never in
+  the other direction. With ten volunteers and clearly separated categories
+  that gap is absorbed; it is a thinner cushion, not an absent one. On a
+  denser pool of similar candidates, a consistent penalty of that size is
+  exactly what flips an ordering. We are reporting "no rank change at this
+  scale," not "no bias" — and the audit is in the repo to be re-run as the
+  pool grows.
 
 **Safety gap.** Manual approval vets the *volunteer*, not the *session*.
 Peer-support research documents exactly the failure mode this misses:

@@ -9,6 +9,7 @@
  */
 
 import type * as adversarialTests from "../adversarialTests.js";
+import type * as biasAudit from "../biasAudit.js";
 import type * as evalRunner from "../evalRunner.js";
 import type * as evaluation from "../evaluation.js";
 import type * as matchScoring from "../matchScoring.js";
@@ -30,6 +31,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adversarialTests: typeof adversarialTests;
+  biasAudit: typeof biasAudit;
   evalRunner: typeof evalRunner;
   evaluation: typeof evaluation;
   matchScoring: typeof matchScoring;
