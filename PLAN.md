@@ -27,7 +27,21 @@ That sets the priority order below: **ship first, polish second.**
 
 ## P0 — Submission blockers (nothing else matters until these are done)
 
-### P0-1. Deploy to a public URL
+### P0-1. Deploy to a public URL — **LIVE**
+- [x] Convex cloud project created and deployed:
+      `https://energized-retriever-599.convex.cloud`
+- [x] Prod env vars set (they do NOT inherit from dev).
+- [x] Prod seeded: 10 eval cases + 10 volunteers.
+- [x] Verified prod matching end to end (Spanish request → correct match).
+- [x] **Frontend live: https://temporary-swift-spinel-mqqp1vu.vercel.app**
+      All routes 200; bundle confirmed pointing at the prod Convex backend.
+      Built inside Docker (Linux) because Windows blocks the symlinks Vercel
+      needs — see credentials file for the exact command.
+- [ ] **CLAIM the Vercel deployment or it expires within the hour.**
+- [ ] Optional but preferred: move to Render ($50 sponsor credits already
+      claimed) for a permanent, sponsor-aligned host.
+
+### P0-1 (original checklist, kept for the Render path)
 - [ ] Link the Convex project to a real deployment (currently `anonymous-app`,
       a local-only backend — it dies with this machine).
       Requires `npx convex login` (browser auth, needs Rafael).
