@@ -12,6 +12,7 @@ import type * as evaluation from "../evaluation.js";
 import type * as nebius from "../nebius.js";
 import type * as requests from "../requests.js";
 import type * as requestsActions from "../requestsActions.js";
+import type * as seedEvalCases from "../seedEvalCases.js";
 import type * as volunteers from "../volunteers.js";
 import type * as volunteersActions from "../volunteersActions.js";
 import type * as volunteersMutations from "../volunteersMutations.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   nebius: typeof nebius;
   requests: typeof requests;
   requestsActions: typeof requestsActions;
+  seedEvalCases: typeof seedEvalCases;
   volunteers: typeof volunteers;
   volunteersActions: typeof volunteersActions;
   volunteersMutations: typeof volunteersMutations;
