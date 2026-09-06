@@ -66,7 +66,8 @@ export const updateStatus = internalMutation({
       v.literal("match_found"),
       v.literal("confirmed"),
       v.literal("completed"),
-      v.literal("no_match")
+      v.literal("no_match"),
+      v.literal("failed")
     ),
     matchedVolunteerId: v.optional(v.id("volunteers")),
     matchScore: v.optional(v.number()),

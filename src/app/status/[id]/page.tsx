@@ -44,6 +44,16 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
         </>
       )}
 
+      {request.status === "failed" && (
+        <>
+          <p className="text-lg">Something went wrong on our side.</p>
+          <p className="text-sm text-neutral-500 max-w-sm">
+            {request.matchReasoning ??
+              "The matching service didn't respond in time. Your request is saved — please try again."}
+          </p>
+        </>
+      )}
+
       {request.status === "no_match" && (
         <>
           <p className="text-lg">We couldn&apos;t find anyone available right now.</p>

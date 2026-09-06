@@ -42,6 +42,23 @@ export const deleteAdversarialTests = internalMutation({
   },
 });
 
+// Clears throwaway rows left behind by manual pipeline testing, so a demo
+// or a fresh deployment doesn't show "Test Volunteer" next to real profiles.
+export const deleteScratchVolunteers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("volunteers").collect();
+    let deleted = 0;
+    for (const vol of all) {
+      if (/^Test Volunteer/i.test(vol.name)) {
+        await ctx.db.delete(vol._id);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+});
+
 export const saveProfile = internalMutation({
   args: {
     volunteerId: v.id("volunteers"),

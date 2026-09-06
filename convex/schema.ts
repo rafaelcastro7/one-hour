@@ -31,7 +31,8 @@ export default defineSchema({
       v.literal("match_found"), // match proposed, waiting for confirmation
       v.literal("confirmed"), // both sides accepted
       v.literal("completed"),
-      v.literal("no_match") // no one available was found
+      v.literal("no_match"), // no one available was found
+      v.literal("failed") // the pipeline errored (e.g. upstream timeout)
     ),
     matchedVolunteerId: v.optional(v.id("volunteers")),
     matchScore: v.optional(v.number()), // cosine similarity of the chosen match

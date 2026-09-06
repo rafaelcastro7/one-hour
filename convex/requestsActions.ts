@@ -19,14 +19,49 @@ export const buildAndMatch = internalAction({
     ),
   },
   handler: async (ctx, { requestId, history }) => {
-    const profile: { category: string; summary: string } = await ctx.runAction(
-      internal.nebius.closeProfile,
-      { history, mode: "need" }
+    try {
+      await runMatchPipeline(ctx, requestId, history);
+    } catch (err) {
+      // Nebius calls take ~20s each and do time out in practice (ETIMEDOUT
+      // observed in testing). Without this the request sat in "searching"
+      // forever and the user watched a spinner that would never resolve.
+      console.error("buildAndMatch failed", err);
+      await ctx.runMutation(internal.requests.updateStatus, {
+        requestId,
+        status: "failed",
+        matchReasoning:
+          "The matching service didn't respond in time. Your request is saved — please try again.",
+      });
+    }
+  },
+});
+
+// Retries transient upstream failures. Nebius occasionally times out under
+// load; one retry converts most of those into a normal (if slower) match
+// instead of a dead request.
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.warn(`${label} failed, retrying once`, err);
+    return await fn();
+  }
+}
+
+async function runMatchPipeline(
+  ctx: any,
+  requestId: any,
+  history: Array<{ role: "user" | "assistant"; content: string }>
+) {
+  {
+    const profile: { category: string; summary: string } = await withRetry(
+      "closeProfile",
+      () => ctx.runAction(internal.nebius.closeProfile, { history, mode: "need" })
     );
 
-    const embedding: number[] = await ctx.runAction(internal.nebius.embed, {
-      text: profile.summary,
-    });
+    const embedding: number[] = await withRetry("embed", () =>
+      ctx.runAction(internal.nebius.embed, { text: profile.summary })
+    );
 
     await ctx.runMutation(internal.requests.updateStatus, {
       requestId,
@@ -66,9 +101,13 @@ export const buildAndMatch = internalAction({
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
-    const decision: { chosenId: string | null; reasoning: string } = await ctx.runAction(
-      internal.nebius.decideMatch,
-      { needSummary: profile.summary, candidates: scored }
+    const decision: { chosenId: string | null; reasoning: string } = await withRetry(
+      "decideMatch",
+      () =>
+        ctx.runAction(internal.nebius.decideMatch, {
+          needSummary: profile.summary,
+          candidates: scored,
+        })
     );
 
     if (!decision.chosenId) {
@@ -89,8 +128,8 @@ export const buildAndMatch = internalAction({
       matchScore: chosen?.score ?? 0,
       matchReasoning: decision.reasoning,
     });
-  },
-});
+  }
+}
 
 // Generates the video call room via Daily.co once the match is confirmed.
 export const createRoom = internalAction({
