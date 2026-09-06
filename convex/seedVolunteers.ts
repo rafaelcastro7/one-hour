@@ -1,0 +1,144 @@
+"use node";
+
+import OpenAI from "openai";
+import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+// Synthetic demo volunteers. These are NOT real people: no real names,
+// emails, or profiles are used, and nobody is contacted. They exist so the
+// matching pipeline (and especially the adversarial hard-negative case) can
+// be exercised against a pool with genuine competition between candidates,
+// instead of trivially picking the only row in the table.
+//
+// Emails use the reserved example.com domain (RFC 2606) precisely so they
+// can never reach a real inbox.
+const DEMO_VOLUNTEERS = [
+  {
+    name: "Demo — Backend/DB volunteer",
+    email: "demo-backend@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Backend engineer with 8 years of Node.js and Postgres experience, comfortable diagnosing production database issues including connection pooling exhaustion and query performance under load.",
+    availability: "weekday evenings",
+  },
+  {
+    name: "Demo — Frontend/React volunteer",
+    email: "demo-frontend@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Frontend developer specialising in React and Next.js, has debugged server-side rendering and hydration mismatch errors that only appear in production builds.",
+    availability: "weekends",
+  },
+  {
+    name: "Demo — Beginner programming tutor",
+    email: "demo-tutor@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Teaches programming fundamentals to complete beginners, patient with computer-science basics like recursion, loops and data structures, explains without jargon.",
+    availability: "weekday afternoons",
+  },
+  {
+    name: "Demo — DevOps/hosting volunteer",
+    email: "demo-devops@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Infrastructure and DevOps background, handles DNS configuration, hosting migrations and deployment outages, used to explaining infrastructure problems to non-technical people.",
+    availability: "flexible",
+  },
+  {
+    name: "Demo — Career/interview coach",
+    email: "demo-career@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Senior engineer who runs mock technical interviews and reviews resumes for backend and full-stack engineering roles, including behavioural interview practice.",
+    availability: "weekday mornings",
+  },
+  {
+    name: "Demo — Spanish conversation volunteer",
+    email: "demo-spanish@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Native Spanish speaker offering relaxed conversation practice for beginners, especially patient with people who feel nervous or self-conscious about speaking aloud.",
+    availability: "weekday evenings",
+  },
+  {
+    name: "Demo — French conversation volunteer",
+    email: "demo-french-convo@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Native French speaker offering casual French conversation practice and pronunciation help for learners at any level, friendly and informal sessions.",
+    availability: "weekends",
+  },
+  {
+    // The intended correct answer for the adversarial eval case. By wording,
+    // the "French conversation" volunteer above looks closer to a request
+    // phrased around French; this one is the right pick for reviewing
+    // technical UI copy.
+    name: "Demo — French technical translation reviewer",
+    email: "demo-french-technical@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Professional French translator who reviews software UI strings, button labels, error messages and technical documentation for naturalness and correct terminology. Not a conversation partner.",
+    availability: "flexible",
+  },
+  {
+    name: "Demo — French interview practice volunteer",
+    email: "demo-french-interview@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Fluent French speaker with corporate HR experience, helps candidates rehearse behavioural interview answers in French and gives feedback on professional register.",
+    availability: "weekday evenings",
+  },
+  {
+    name: "Demo — Mandarin everyday-conversation volunteer",
+    email: "demo-mandarin@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Mandarin speaker focused on practical everyday conversation for newcomers living in China: shopping, transport, doctor visits and small talk, rather than formal business Chinese.",
+    availability: "flexible",
+  },
+];
+
+/**
+ * Seeds the demo volunteer pool with pre-computed embeddings, already
+ * approved and active, so the matching pipeline has real competition
+ * between candidates to reason about.
+ */
+export const seed = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const existing: Array<{ email: string }> = await ctx.runQuery(
+      internal.volunteersQueries.getAllActiveVolunteers,
+      {}
+    );
+    const existingEmails = new Set(existing.map((v) => v.email));
+
+    const client = new OpenAI({
+      baseURL: "https://api.tokenfactory.nebius.com/v1/",
+      apiKey: process.env.NEBIUS_API_KEY,
+    });
+
+    let inserted = 0;
+    for (const v of DEMO_VOLUNTEERS) {
+      if (existingEmails.has(v.email)) continue;
+
+      const res = await client.embeddings.create({
+        model: "Qwen/Qwen3-Embedding-8B",
+        input: v.profileSummary,
+      });
+
+      await ctx.runMutation(internal.volunteersMutations.insertSeedVolunteer, {
+        name: v.name,
+        email: v.email,
+        category: v.category,
+        rawOffer: v.profileSummary,
+        profileSummary: v.profileSummary,
+        availability: v.availability,
+        embedding: res.data[0].embedding,
+      });
+      inserted++;
+    }
+
+    return { inserted, skipped: DEMO_VOLUNTEERS.length - inserted };
+  },
+});
