@@ -50,5 +50,16 @@ export default defineSchema({
     actualMatchDescription: v.optional(v.string()),
     wasCorrect: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    isAdversarial: v.optional(v.boolean()), // highlights the "cosine alone would be wrong" case
+    // Populated by convex/evalRunner.ts when the case is run against the
+    // live pipeline -- lets the eval dashboard show real latency/cost, not
+    // just accuracy, matching the track's "measure accuracy, latency, or
+    // cost" requirement.
+    topCandidateByCosineOnly: v.optional(v.string()), // what pure similarity alone would have picked
+    chosenByLLM: v.optional(v.string()), // what the LLM decision layer actually picked
+    llmReasoning: v.optional(v.string()),
+    latencyMs: v.optional(v.number()), // full pipeline: close profile + embed + decide
+    estimatedTokens: v.optional(v.number()),
+    lastRunAt: v.optional(v.number()),
   }),
 });

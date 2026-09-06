@@ -37,13 +37,36 @@ the busywork.
    back-and-forth with an LLM (not a form).
 2. The LLM closes the conversation into a structured summary (category,
    urgency/availability, one-sentence description) via JSON mode.
-3. That summary is embedded (`bge-multilingual-gemma2`) and compared by
+3. That summary is embedded (`Qwen/Qwen3-Embedding-8B`) and compared by
    cosine similarity against the active volunteer pool.
 4. The top-3 candidates by similarity are handed to a second LLM call,
    which makes the final call — this is the layer that can catch cases
    where the closest match by wording isn't actually the right one.
 5. On confirmation, a Convex action calls the Daily.co API and the room
    URL appears live on both sides' screens via Convex's reactivity.
+
+### Why this isn't "just an LLM wrapper"
+
+Cosine similarity alone is wrong often enough that it's not a safe default
+for something as personal as "who do I trust with an hour of my time."
+`/eval` runs a live, labeled test set against this exact pipeline and
+surfaces the case that proves it: someone asks for a **technical review of
+French UI copy** (button labels, error messages), not conversation
+practice. By wording alone, the closest embedding match is a volunteer who
+offers *French conversation practice* — a plausible-sounding but wrong
+pick. The second LLM call, given the actual candidates and their
+similarity scores, overrides that and picks the volunteer who does
+technical translation review instead, and explains why. That override is
+the whole reason the decision layer exists, and `/eval` shows it happening
+on real API calls, not a canned example.
+
+`/eval` also reports accuracy, average pipeline latency, and average token
+cost across the labeled set on every run. Which model does which job is a
+deliberate cost/latency split, not an arbitrary choice:
+`meta-llama/Llama-3.3-70B-Instruct` handles conversation and the one
+judgment call that actually needs a large model, while the much cheaper
+`Qwen/Qwen3-Embedding-8B` handles the initial narrowing pass over the
+whole volunteer pool.
 
 ## Getting started
 
@@ -85,6 +108,42 @@ src/app/
   status/[id]/            # live match status (Convex reactivity)
   admin/                  # manual volunteer approval panel
 ```
+
+## Prior work this builds on
+
+The two-stage design here isn't improvised — it's the **retrieve-then-rerank**
+pattern from information retrieval, with an LLM acting as a **listwise
+reranker** over the candidates that dense retrieval surfaced.
+
+- **[RankGPT — "Is ChatGPT Good at Search?"](https://arxiv.org/abs/2304.09542)**
+  (Sun et al., EMNLP 2023): establishes LLMs as effective listwise rerankers
+  over retrieved results without fine-tuning. This is directly the role of
+  `decideMatch` in `convex/nebius.ts`.
+- **[Anthropic — Contextual Retrieval](https://www.anthropic.com/engineering/contextual-retrieval)**:
+  reports that adding a reranking pass cuts top-20 retrieval failure rate
+  substantially versus embeddings alone — the quantitative case for why the
+  second LLM call earns its latency and token cost.
+- **[Semantics at an Angle](https://arxiv.org/abs/2504.16318)** (2025): analyses
+  *why* cosine similarity fails in specific cases (normalization discards
+  magnitude, anisotropy, hubness). Our adversarial eval case is a concrete
+  instance of this.
+- **[ANCE](https://arxiv.org/abs/2007.00808)** (Xiong et al., ICLR 2021): the
+  origin of **"hard negative"** — the correct technical name for our
+  adversarial case, where the nearest neighbour by embedding distance is the
+  wrong answer.
+- **[ConFit v3](https://arxiv.org/abs/2605.09760)**: resume-to-job matching
+  with embedding retrieval plus LLM reranking — the closest published
+  analogue to what we do, structurally, on human-to-human matching.
+
+Reranking as a first-class step is also documented industry practice:
+[Cohere Rerank](https://docs.cohere.com/docs/rerank-overview), LlamaIndex node
+postprocessors, and LangChain's `LLMListwiseRerank` all ship it as a standard
+module rather than an optimization.
+
+One honest gap: we found **no published research specific to volunteer
+matching**. The nearest well-studied framing is reciprocal recommendation
+(both sides must be satisfied, as in mentor–mentee or job matching), which is
+the lens we'd use if this became a research question rather than a product.
 
 ## Known limitations (by design, not oversight)
 

@@ -71,6 +71,7 @@ const CASES = [
     expectedCategory: "languages",
     expectedMatchDescription:
       "A fluent French speaker specifically comfortable reviewing short technical/UI copy, not a general conversation-practice volunteer -- documents a case where highest cosine similarity (matches a 'French conversation practice' volunteer) is the wrong pick.",
+    isAdversarial: true,
   },
   {
     needText:
