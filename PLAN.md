@@ -114,7 +114,9 @@ stages instead of an opaque spinner, which mitigates but does not fix it.
 - [ ] Reciprocal utility: model whether the *volunteer* wants the match.
       Today the system optimises one-sided utility only.
 - [ ] Match-distribution metric (Gini) to detect congestion.
-- [ ] Pre-session screening + referral script (peer-support safety gap).
+- [~] Pre-session screening — DONE (requester side): SafetyScreen.tsx states
+      the role boundary, routes crisis to findahelpline.com, requires
+      acknowledgement. Volunteer-side no-blame exit/referral still pending.
 
 ---
 

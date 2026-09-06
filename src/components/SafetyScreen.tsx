@@ -1,0 +1,81 @@
+"use client";
+
+// Pre-session screening. Peer-support research (e.g. the JMIR analysis of
+// 7 Cups) documents the failure mode this guards against: someone books
+// "language practice" while actually in crisis, and an untrained volunteer
+// is left holding a situation they can't handle. Manual approval vets the
+// volunteer, not the session, so this closes the gap on the requester side:
+// name the role boundary up front, and route anyone in crisis to real help
+// instead of into a match.
+//
+// It is deliberately not a diagnosis or a gate that judges the person -- it
+// states what One Hour is and isn't, and makes the crisis path one tap away.
+
+export function SafetyScreen({ onContinue }: { onContinue: () => void }) {
+  return (
+    <div className="flex flex-col gap-5 w-full max-w-md">
+      <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-5 space-y-3">
+        <p className="text-sm text-neutral-300">
+          One Hour connects you with a <strong>volunteer</strong> for an hour of
+          help with <strong>tech or language practice</strong>. Volunteers are
+          kind people giving their time — not licensed professionals, and not a
+          support or emergency service.
+        </p>
+        <p className="text-sm text-neutral-400">
+          If what you need is medical, legal, or mental-health help, or if
+          you&apos;re in any kind of crisis, please reach out to a professional
+          service — that&apos;s not something a one-hour volunteer chat can
+          safely cover.
+        </p>
+      </div>
+
+      <details className="bg-red-950/30 border border-red-500/30 rounded-xl p-4 text-sm">
+        <summary className="cursor-pointer text-red-300 font-medium">
+          In crisis or need urgent help now?
+        </summary>
+        <div className="mt-3 space-y-2 text-neutral-300">
+          <p>
+            You&apos;re not alone. If you&apos;re in immediate danger, contact
+            your local emergency number.
+          </p>
+          <p>
+            Free, confidential crisis lines by country are listed at{" "}
+            <a
+              href="https://findahelpline.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 underline"
+            >
+              findahelpline.com
+            </a>
+            .
+          </p>
+        </div>
+      </details>
+
+      <label className="flex items-start gap-3 text-sm text-neutral-300">
+        <input
+          type="checkbox"
+          className="mt-1"
+          onChange={(e) => {
+            const btn = document.getElementById("safety-continue") as HTMLButtonElement | null;
+            if (btn) btn.disabled = !e.target.checked;
+          }}
+        />
+        <span>
+          I understand this is a volunteer for tech or language help, not a
+          professional or emergency service.
+        </span>
+      </label>
+
+      <button
+        id="safety-continue"
+        disabled
+        onClick={onContinue}
+        className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-40"
+      >
+        Continue
+      </button>
+    </div>
+  );
+}

@@ -236,14 +236,23 @@ That has measurable consequences documented in the literature:
   scale," not "no bias" — and the audit is in the repo to be re-run as the
   pool grows.
 
-**Safety gap.** Manual approval vets the *volunteer*, not the *session*.
-Peer-support research documents exactly the failure mode this misses:
-someone books "English practice" while actually in crisis
+**Safety gap — now partly closed.** Manual approval vets the *volunteer*,
+not the *session*. Peer-support research documents exactly the failure mode
+this misses: someone books "English practice" while actually in crisis
 ([JMIR analysis of 7 Cups](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5829455/)
-found insufficient listener training). Serious platforms add pre-session
-screening, an explicit referral script, and a no-blame exit for the
-volunteer. We have none of those, which is a large part of why launch
-categories are tech and languages rather than anything closer to health.
+found insufficient listener training).
+
+The request flow now opens with a pre-session screen
+(`src/components/SafetyScreen.tsx`): it states plainly that a volunteer is
+for tech or language help and is not a professional or emergency service,
+routes anyone in crisis to real help
+([findahelpline.com](https://findahelpline.com), country-specific lines),
+and requires acknowledging the role boundary before continuing. This is the
+requester-side half of what serious platforms do. The volunteer-side half —
+a no-blame exit and a referral script for when a session turns out to
+exceed what an hour of help can cover — is not built yet, and is a large
+part of why launch categories are tech and languages rather than anything
+closer to health.
 
 If we measured match quality properly we'd ask **both** parties, using a
 validated short instrument like the four-item

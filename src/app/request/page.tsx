@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { IntakeChat } from "@/components/IntakeChat";
+import { SafetyScreen } from "@/components/SafetyScreen";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -12,7 +13,7 @@ export default function RequestPage() {
   const createRequest = useMutation(api.requests.create);
   const router = useRouter();
 
-  const [step, setStep] = useState<"chat" | "form">("chat");
+  const [step, setStep] = useState<"safety" | "chat" | "form">("safety");
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +30,8 @@ export default function RequestPage() {
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-8 bg-neutral-950 text-neutral-50">
       <h1 className="text-2xl font-bold">Tell us what you need</h1>
+
+      {step === "safety" && <SafetyScreen onContinue={() => setStep("chat")} />}
 
       {step === "chat" && (
         <IntakeChat
