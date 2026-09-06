@@ -106,6 +106,13 @@ stages instead of an opaque spinner, which mitigates but does not fix it.
 
 ---
 
+## Tests — DONE (scoring defence)
+- [x] `convex/matchScoring.test.ts`: 10 vitest cases over cosine similarity
+      and the breadth penalty, including the exact keyword-stuffing attack.
+      `npm test`. Build/typecheck verified unaffected.
+- [ ] Optional: convex-test cases for the pipeline mutations (needs
+      edge-runtime env; the scoring logic was the high-value target).
+
 ## P2 — Only if P0 and P1 are fully closed
 
 - [x] ~~Build a hard negative where retrieval genuinely fails~~ — obtained
