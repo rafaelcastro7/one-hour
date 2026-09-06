@@ -99,6 +99,28 @@ const DEMO_VOLUNTEERS = [
   },
 ];
 
+// Seeded as pending, not approved: the admin queue is otherwise empty and
+// the human approval gate -- a deliberate trust decision, not a missing
+// feature -- has nothing to show.
+const PENDING_VOLUNTEERS = [
+  {
+    name: "Demo — Awaiting review (Python/data)",
+    email: "demo-pending-python@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "Data engineer offering help with Python, pandas and getting started with data analysis pipelines. Says they have five years of industry experience.",
+    availability: "weekday evenings",
+  },
+  {
+    name: "Demo — Awaiting review (German)",
+    email: "demo-pending-german@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "Native German speaker offering conversation practice and help preparing for the Goethe-Institut B2 exam.",
+    availability: "weekends",
+  },
+];
+
 /**
  * Seeds the demo volunteer pool with pre-computed embeddings, already
  * approved and active, so the matching pipeline has real competition
@@ -107,8 +129,10 @@ const DEMO_VOLUNTEERS = [
 export const seed = internalAction({
   args: {},
   handler: async (ctx) => {
+    // Must include pending volunteers too, or re-running the seed would
+    // duplicate them (getAllActiveVolunteers only sees approved ones).
     const existing: Array<{ email: string }> = await ctx.runQuery(
-      internal.volunteersQueries.getAllActiveVolunteers,
+      internal.volunteersQueries.getEveryVolunteer,
       {}
     );
     const existingEmails = new Set(existing.map((v) => v.email));
@@ -139,6 +163,32 @@ export const seed = internalAction({
       inserted++;
     }
 
-    return { inserted, skipped: DEMO_VOLUNTEERS.length - inserted };
+    let pendingInserted = 0;
+    for (const v of PENDING_VOLUNTEERS) {
+      if (existingEmails.has(v.email)) continue;
+
+      const res = await client.embeddings.create({
+        model: "Qwen/Qwen3-Embedding-8B",
+        input: v.profileSummary,
+      });
+
+      await ctx.runMutation(internal.volunteersMutations.insertSeedVolunteer, {
+        name: v.name,
+        email: v.email,
+        category: v.category,
+        rawOffer: v.profileSummary,
+        profileSummary: v.profileSummary,
+        availability: v.availability,
+        embedding: res.data[0].embedding,
+        approved: false,
+      });
+      pendingInserted++;
+    }
+
+    return {
+      inserted,
+      pendingInserted,
+      skipped: DEMO_VOLUNTEERS.length - inserted,
+    };
   },
 });

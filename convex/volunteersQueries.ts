@@ -12,6 +12,15 @@ export const getActiveVolunteers = internalQuery({
   },
 });
 
+// Every volunteer regardless of approval state. Used by seeding to avoid
+// duplicating rows that exist but are still awaiting review.
+export const getEveryVolunteer = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("volunteers").collect();
+  },
+});
+
 // Used by convex/evalRunner.ts, which needs the whole active pool up front
 // since each eval case can resolve to either category.
 export const getAllActiveVolunteers = internalQuery({

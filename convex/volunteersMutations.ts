@@ -14,12 +14,16 @@ export const insertSeedVolunteer = internalMutation({
     profileSummary: v.string(),
     availability: v.string(),
     embedding: v.array(v.number()),
+    // Defaults to approved so the matching pool works out of the box; pass
+    // false to leave the volunteer in the admin queue instead.
+    approved: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { approved, ...args }) => {
+    const isApproved = approved ?? true;
     return await ctx.db.insert("volunteers", {
       ...args,
-      verified: true,
-      active: true,
+      verified: isApproved,
+      active: isApproved,
       createdAt: Date.now(),
     });
   },
