@@ -72,6 +72,18 @@ export const pendingApproval = query({
 export const approve = mutation({
   args: { volunteerId: v.id("volunteers") },
   handler: async (ctx, { volunteerId }) => {
+    const volunteer = await ctx.db.get(volunteerId);
+    if (!volunteer) throw new Error("Volunteer not found");
+
+    // A volunteer with no embedding can never be retrieved, so approving one
+    // would silently produce a member who exists in the admin list but is
+    // invisible to matching forever. Usually means intake hit a timeout.
+    if (volunteer.embedding.length === 0) {
+      throw new Error(
+        "This volunteer has no profile embedding (intake likely failed). Re-run their intake before approving."
+      );
+    }
+
     await ctx.db.patch(volunteerId, { verified: true, active: true });
   },
 });

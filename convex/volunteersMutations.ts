@@ -50,7 +50,7 @@ export const deleteScratchVolunteers = internalMutation({
     const all = await ctx.db.query("volunteers").collect();
     let deleted = 0;
     for (const vol of all) {
-      if (/^Test Volunteer/i.test(vol.name)) {
+      if (/^(Test Volunteer|Rehearsal|Broken Intake Test)/i.test(vol.name)) {
         await ctx.db.delete(vol._id);
         deleted++;
       }
