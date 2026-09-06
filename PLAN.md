@@ -42,15 +42,14 @@ That sets the priority order below: **ship first, polish second.**
 - [ ] Verify the public URL end to end from a browser: request → match →
       confirm → Daily room opens.
 
-### P0-2. Public GitHub repo
-- [ ] `gh repo create one-hour --public --source=. --push`
-      (blocked once by the session's auto-approval classifier; needs
-      Rafael to approve the command when prompted).
-- [ ] Confirm no secrets in history — `.env*` is gitignored; verified clean.
-- [ ] Paste repo URL into the submission form.
+### P0-2. Public GitHub repo — **DONE**
+- [x] Live at https://github.com/rafaelcastro7/one-hour
+- [x] Full history scanned for secrets — clean.
+- [ ] Paste repo URL into the submission form (needs P0-4).
 
 ### P0-3. Demo video (≤2 min) + X post
-- [ ] Script it (see appendix below) — do not free-form walk through the app.
+- [x] Scripted shot-by-shot in `DEMO_SCRIPT.md`, with verified numbers.
+- [x] Flow rehearsed end to end in Spanish — passed after fixing a hang.
 - [ ] Record, tagging **@nerdconf_ar** in the post or a comment.
 - [ ] Paste post URL into the submission form.
 
@@ -146,3 +145,10 @@ Research on winning hackathon demos says: script it, don't wander.
 
 - 2026-09-06 — Plan created. P0 items all blocked on actions only Rafael can
   take (Convex login, GitHub approval, recording). P1-1 startable now.
+- 2026-09-06 — P0-2 done (repo public, no secrets). P1-1 done (breadth
+  penalty; stuffed profiles no longer reach top-3; produced the genuine hard
+  negative). P1-2 done (bias audit: rank held, similarity lower 5/5).
+  P0-3 scripted and rehearsed. Production build verified, `render.yaml` ready.
+  Fixed a request-hangs-forever bug found while rehearsing.
+  **Only remaining blocker: `npx convex login` — two codes expired unused.
+  Nothing else can proceed to a public URL without it.**
