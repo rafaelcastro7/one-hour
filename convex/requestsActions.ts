@@ -137,27 +137,45 @@ export const createRoom = internalAction({
   handler: async (ctx, { requestId }) => {
     const roomName = `one-hour-${requestId.slice(0, 8)}-${Date.now()}`;
 
-    const res = await fetch("https://api.daily.co/v1/rooms", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.DAILY_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: roomName,
-        properties: {
-          exp: Math.round(Date.now() / 1000) + 60 * 60 * 2, // expires in 2h
-          enable_chat: true,
+    // Both sides have already agreed to meet by this point, so a silent
+    // failure here is the worst one in the product: the status page would
+    // sit on "generating your room" forever with no way forward. Retry, and
+    // if it still fails say so instead of hanging.
+    const createDailyRoom = async () => {
+      const res = await fetch("https://api.daily.co/v1/rooms", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.DAILY_API_KEY}`,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          name: roomName,
+          properties: {
+            exp: Math.round(Date.now() / 1000) + 60 * 60 * 2, // expires in 2h
+            enable_chat: true,
+          },
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(
+          `Daily.co room creation failed (${res.status}): ${data?.error ?? data?.info ?? "no url returned"}`
+        );
+      }
+      return data.url as string;
+    };
 
-    if (data.url) {
-      await ctx.runMutation(internal.requests.setRoomUrl, {
+    try {
+      const url = await withRetry("createRoom", createDailyRoom);
+      await ctx.runMutation(internal.requests.setRoomUrl, { requestId, roomUrl: url });
+    } catch (err) {
+      console.error("createRoom failed", err);
+      await ctx.runMutation(internal.requests.updateStatus, {
         requestId,
-        roomUrl: data.url,
+        status: "failed",
+        matchReasoning:
+          "We found your match, but couldn't create the video room. Please try confirming again.",
       });
     }
   },
