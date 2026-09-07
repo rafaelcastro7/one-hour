@@ -98,8 +98,8 @@ export default function JuryPage() {
       <section className="w-full max-w-2xl rounded-xl border border-neutral-800 bg-neutral-900 p-6 space-y-2">
         <h2 className="font-semibold">Honest limits</h2>
         <ul className="list-disc list-inside space-y-1 text-sm text-neutral-300">
-          <li>One-sided utility today — volunteer-side preference is not modelled.</li>
-          <li>Linguistic-bias audit: no rank change in 5/5 pairs, but non-native scores 2–7 pts lower, consistently.</li>
+          <li>Reciprocity is partial: congestion control spreads load and volunteers set availability, but volunteer-side preference is not fully modelled.</li>
+          <li>Linguistic-bias audit: no rank change in 5/5 pairs, but non-native scores 2–7 pts lower, consistently — offset by a lexical grounding bonus, not erased.</li>
           <li>Manual approval vets the volunteer, not the session — mitigated with a pre-session safety screen, not solved.</li>
         </ul>
       </section>
