@@ -91,8 +91,11 @@ export const approve = mutation({
 export const listActive = query({
   args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },
   handler: async (ctx, { category }) => {
-    let q = ctx.db.query("volunteers").filter((qq) => qq.eq(qq.field("active"), true));
-    const all = await q.collect();
-    return category ? all.filter((v) => v.category === category) : all;
+    const all = await ctx.db
+      .query("volunteers")
+      .withIndex("by_active", (q) => q.eq("active", true))
+      .collect();
+    const withEmbeddings = all.filter((v) => v.embedding.length > 0);
+    return category ? withEmbeddings.filter((v) => v.category === category) : withEmbeddings;
   },
 });

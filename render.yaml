@@ -16,7 +16,7 @@
 # (`npx convex env set ...`), never in the frontend environment.
 services:
   - type: web
-    name: one-hour
+    name: 1hour
     runtime: node
     plan: free
     buildCommand: npm ci && npm run build

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,18 +16,37 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "One Hour",
-  description: "Volunteering hub: ask for or give an hour of your time, AI-matched.",
+  metadataBase: new URL("https://1hour.vercel.app"),
+  title: {
+    default: "1hour — give an hour, get an hour",
+    template: "%s · 1hour",
+  },
+  description:
+    "1hour is an AI-matched volunteering hub: ask for or give an hour of your time. Conversational intake, semantic matching, real video call on confirm.",
+  openGraph: {
+    title: "1hour — give an hour, get an hour",
+    description:
+      "Conversational intake → semantic matching → real video call. Measured accuracy, latency and cost.",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-50">
+        <ConvexClientProvider>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+        </ConvexClientProvider>
       </body>
     </html>
   );

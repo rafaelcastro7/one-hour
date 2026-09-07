@@ -1,14 +1,31 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { use } from "react";
+import Link from "next/link";
+import { use, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { PipelineTips } from "@/components/PipelineTips";
 
 export default function StatusPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const request = useQuery(api.requests.get, { requestId: id as Id<"requests"> });
   const confirmMatch = useMutation(api.requests.confirmMatch);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  async function handleConfirm() {
+    if (confirming) return;
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      await confirmMatch({ requestId: id as Id<"requests"> });
+    } catch {
+      setConfirmError("Couldn't confirm the match. Try again.");
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   if (request === undefined) {
     return <Centered>Loading...</Centered>;
@@ -24,6 +41,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
         <>
           <Spinner />
           <p className="text-lg">Finding the right person for you...</p>
+          <PipelineTips />
           {/* The pipeline takes ~35s across two LLM calls, so show which
               stage we're actually in rather than one opaque spinner.
               needSummary lands the moment the first call returns, which is
@@ -51,6 +69,12 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
             {request.matchReasoning ??
               "The matching service didn't respond in time. Your request is saved — please try again."}
           </p>
+          <Link
+            href="/request"
+            className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
+          >
+            Try again
+          </Link>
         </>
       )}
 
@@ -60,6 +84,12 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
           <p className="text-sm text-neutral-500 max-w-sm">
             {request.matchReasoning ?? "Try again later, we keep adding volunteers."}
           </p>
+          <Link
+            href="/request"
+            className="rounded-lg border-2 border-neutral-700 text-neutral-100 font-semibold px-6 py-3 hover:border-amber-400 transition-colors"
+          >
+            Make another request
+          </Link>
         </>
       )}
 
@@ -70,14 +100,18 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
             <p className="font-semibold">{request.volunteer.name}</p>
             <p className="text-sm text-neutral-400">{request.volunteer.profileSummary}</p>
             <p className="text-xs text-neutral-600 mt-2">
-              Similarity: {(request.matchScore! * 100).toFixed(0)}% — {request.matchReasoning}
+              Similarity: {typeof request.matchScore === "number" ? `${(request.matchScore * 100).toFixed(0)}%` : "—"} — {request.matchReasoning}
             </p>
           </div>
+          {confirmError && (
+            <p className="text-sm text-red-300" role="alert">{confirmError}</p>
+          )}
           <button
-            onClick={() => confirmMatch({ requestId: id as Id<"requests"> })}
-            className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
+            onClick={handleConfirm}
+            disabled={confirming}
+            className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3 disabled:opacity-50"
           >
-            Confirm and schedule the call
+            {confirming ? "Confirming..." : "Confirm and schedule the call"}
           </button>
         </>
       )}
@@ -89,6 +123,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
             <a
               href={request.roomUrl}
               target="_blank"
+              rel="noopener noreferrer"
               className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
             >
               Join the video call
@@ -123,6 +158,6 @@ function Stage({ label, done }: { label: string; done?: boolean }) {
 
 function Spinner() {
   return (
-    <div className="h-10 w-10 rounded-full border-4 border-neutral-700 border-t-amber-400 animate-spin" />
+    <div className="h-10 w-10 rounded-full border-4 border-neutral-700 border-t-amber-400 animate-spin" role="status" aria-label="Loading" />
   );
 }

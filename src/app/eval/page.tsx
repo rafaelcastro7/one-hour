@@ -8,10 +8,19 @@ export default function EvalPage() {
   const results = useQuery(api.evaluation.listResults);
   const runEvaluation = useMutation(api.evaluation.runEvaluation);
   const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
 
   async function run() {
+    if (running) return;
     setRunning(true);
-    await runEvaluation();
+    setRunError(null);
+    try {
+      await runEvaluation();
+    } catch {
+      setRunError("Couldn't start the evaluation. Try again.");
+      setRunning(false);
+      return;
+    }
     setTimeout(() => setRunning(false), 15000);
   }
 
@@ -35,6 +44,9 @@ export default function EvalPage() {
       >
         {running ? "Running against live Nebius API..." : "Run evaluation now"}
       </button>
+      {runError && (
+        <p className="text-sm text-red-300" role="alert">{runError}</p>
+      )}
 
       {results && (
         <div className="w-full max-w-2xl grid grid-cols-3 gap-4">

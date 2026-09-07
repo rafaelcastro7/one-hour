@@ -3,6 +3,7 @@
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
+import { PipelineTips } from "./PipelineTips";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -25,6 +26,7 @@ export function IntakeChat({
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function send() {
     if (!input.trim() || loading) return;
@@ -32,16 +34,20 @@ export function IntakeChat({
     setMessages(newHistory);
     setInput("");
     setLoading(true);
+    setError(null);
 
     try {
       const reply = await runIntakeStep({ history: newHistory, mode });
-
+      if (typeof reply !== "string" || reply.length === 0) {
+        throw new Error("Empty response from the assistant.");
+      }
       if (reply.startsWith("READY_TO_CLOSE")) {
         onDone(newHistory);
         return;
       }
-
       setMessages([...newHistory, { role: "assistant", content: reply }]);
+    } catch {
+      setError("The assistant didn't respond in time. Your message is saved — try sending it again.");
     } finally {
       setLoading(false);
     }
@@ -49,10 +55,10 @@ export function IntakeChat({
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-lg">
-      <div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
+      <div className="flex flex-col gap-3 max-h-96 overflow-y-auto" aria-live="polite">
         {messages.map((m, i) => (
           <div
-            key={i}
+            key={`${m.role}-${i}-${m.content.length}`}
             className={`rounded-lg px-4 py-2.5 text-sm max-w-[85%] ${
               m.role === "user"
                 ? "self-end bg-amber-400 text-neutral-900"
@@ -63,12 +69,19 @@ export function IntakeChat({
           </div>
         ))}
         {loading && (
-          <div className="self-start text-neutral-500 text-sm px-2">Thinking...</div>
+          <div className="self-start px-2">
+            <PipelineTips />
+          </div>
+        )}
+        {error && (
+          <div className="self-start text-red-300 text-sm px-2" role="alert">{error}</div>
         )}
       </div>
 
       <div className="flex gap-2">
+        <label htmlFor="intake-input" className="sr-only">Type your message</label>
         <input
+          id="intake-input"
           className="flex-1 rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
           placeholder="Type here..."
           value={input}

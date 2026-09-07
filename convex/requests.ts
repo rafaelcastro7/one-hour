@@ -53,6 +53,10 @@ export const get = query({
 export const confirmMatch = mutation({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req) throw new Error("Request not found");
+    if (req.roomUrl) return;
+    if (req.status !== "match_found") return;
     await ctx.db.patch(requestId, { status: "confirmed" });
     await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
   },

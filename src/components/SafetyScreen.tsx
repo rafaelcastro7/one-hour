@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Pre-session screening. Peer-support research (e.g. the JMIR analysis of
 // 7 Cups) documents the failure mode this guards against: someone books
 // "language practice" while actually in crisis, and an untrained volunteer
@@ -12,6 +14,7 @@
 // states what One Hour is and isn't, and makes the crisis path one tap away.
 
 export function SafetyScreen({ onContinue }: { onContinue: () => void }) {
+  const [acknowledged, setAcknowledged] = useState(false);
   return (
     <div className="flex flex-col gap-5 w-full max-w-md">
       <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-5 space-y-3">
@@ -57,10 +60,8 @@ export function SafetyScreen({ onContinue }: { onContinue: () => void }) {
         <input
           type="checkbox"
           className="mt-1"
-          onChange={(e) => {
-            const btn = document.getElementById("safety-continue") as HTMLButtonElement | null;
-            if (btn) btn.disabled = !e.target.checked;
-          }}
+          checked={acknowledged}
+          onChange={(e) => setAcknowledged(e.target.checked)}
         />
         <span>
           I understand this is a volunteer for tech or language help, not a
@@ -69,8 +70,7 @@ export function SafetyScreen({ onContinue }: { onContinue: () => void }) {
       </label>
 
       <button
-        id="safety-continue"
-        disabled
+        disabled={!acknowledged}
         onClick={onContinue}
         className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-40"
       >
