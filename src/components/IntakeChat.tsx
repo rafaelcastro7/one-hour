@@ -79,7 +79,7 @@ export function IntakeChat({
         ))}
         {loading && (
           <div className="self-start px-2">
-            <PipelineTips />
+            <PipelineTips mode={mode} messageCount={messages.length} />
           </div>
         )}
         {error && (

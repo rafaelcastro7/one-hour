@@ -107,7 +107,7 @@ export default function AiHelpPage() {
         ))}
         {loading && (
           <div className="self-start px-2">
-            <PipelineTips />
+            <PipelineTips mode="ai" messageCount={messages.length} />
           </div>
         )}
         {error && (

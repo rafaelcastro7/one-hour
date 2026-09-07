@@ -42,7 +42,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
         <>
           <Spinner />
           <p className="text-lg">Finding the right person for you...</p>
-          <PipelineTips />
+          <PipelineTips mode="matching" />
           {/* The pipeline takes ~35s across two LLM calls, so show which
               stage we're actually in rather than one opaque spinner.
               needSummary lands the moment the first call returns, which is
