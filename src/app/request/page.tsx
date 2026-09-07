@@ -14,6 +14,7 @@ export default function RequestPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<"safety" | "chat" | "form">("safety");
+  const [refused, setRefused] = useState(false);
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,14 +47,35 @@ export default function RequestPage() {
 
       {step === "safety" && <SafetyScreen onContinue={() => setStep("chat")} />}
 
-      {step === "chat" && (
+      {step === "chat" && !refused && (
         <IntakeChat
           mode="need"
           onDone={(h) => {
             setHistory(h);
             setStep("form");
           }}
+          onRefused={() => setRefused(true)}
         />
+      )}
+
+      {refused && (
+        <div className="text-center max-w-md space-y-4">
+          <p className="text-lg">Thank you for telling us.</p>
+          <p className="text-sm text-neutral-400">
+            A volunteer hour isn&apos;t the right kind of help for what you&apos;re
+            going through. Please reach out to a professional service — free,
+            confidential lines by country are listed at{" "}
+            <a
+              href="https://findahelpline.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 underline"
+            >
+              findahelpline.com
+            </a>
+            . If you&apos;re in immediate danger, contact your local emergency number.
+          </p>
+        </div>
       )}
 
       {step === "form" && (

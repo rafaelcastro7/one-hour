@@ -14,7 +14,7 @@ export default function OfferPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<"chat" | "form" | "quiz" | "done">("chat");
-  const [refused, setRefused] = useState(false);
+  const [refused, setRefused] = useState<null | "time" | "crisis">(null);
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,11 +84,11 @@ export default function OfferPage() {
             setHistory(h);
             setStep("form");
           }}
-          onRefused={() => setRefused(true)}
+          onRefused={(kind) => setRefused(kind)}
         />
       )}
 
-      {refused && (
+      {refused === "time" && (
         <div className="text-center max-w-md space-y-4">
           <p className="text-lg">Sessions last one full hour.</p>
           <p className="text-sm text-neutral-400">
@@ -98,13 +98,33 @@ export default function OfferPage() {
           </p>
           <button
             onClick={() => {
-              setRefused(false);
+              setRefused(null);
               setHistory([]);
             }}
             className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
           >
             Start over — I can give an hour
           </button>
+        </div>
+      )}
+
+      {refused === "crisis" && (
+        <div className="text-center max-w-md space-y-4">
+          <p className="text-lg">Thank you for telling us.</p>
+          <p className="text-sm text-neutral-400">
+            A volunteer hour isn&apos;t the right kind of help for what you&apos;re
+            going through. Please reach out to a professional service — free,
+            confidential lines by country are listed at{" "}
+            <a
+              href="https://findahelpline.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 underline"
+            >
+              findahelpline.com
+            </a>
+            .
+          </p>
         </div>
       )}
 

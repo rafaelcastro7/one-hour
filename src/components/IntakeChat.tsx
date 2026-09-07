@@ -14,7 +14,7 @@ export function IntakeChat({
 }: {
   mode: "need" | "offer";
   onDone: (history: Message[]) => void;
-  onRefused?: () => void;
+  onRefused?: (kind: "time" | "crisis") => void;
 }) {
   const runIntakeStep = useAction(api.nebius.runIntakeStep);
   const [messages, setMessages] = useState<Message[]>([
@@ -44,7 +44,7 @@ export function IntakeChat({
         throw new Error("Empty response from the assistant.");
       }
       if (reply.refused) {
-        onRefused?.();
+        onRefused?.(reply.refused);
         return;
       }
       if (reply.done) {
