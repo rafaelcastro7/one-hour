@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { cosineSimilarity, topicBreadth, penalisedScore } from "./matchScoring";
+import {
+  cosineSimilarity,
+  topicBreadth,
+  penalisedScore,
+  loadPenalty,
+  keywordOverlapBonus,
+  scoreCandidate,
+} from "./matchScoring";
 
 // These guard the retrieval defence that a red-team probe showed was needed:
 // a keyword-stuffed profile reached rank #2 on raw cosine similarity before
@@ -66,5 +73,64 @@ describe("penalisedScore", () => {
     const focused = penalisedScore(0.62, focusedProfile);
     const stuffed = penalisedScore(0.66, stuffedProfile);
     expect(focused).toBeGreaterThan(stuffed);
+  });
+});
+
+describe("loadPenalty", () => {
+  test("fresh volunteers carry no penalty", () => {
+    expect(loadPenalty(0)).toBe(0);
+  });
+
+  test("grows with load but stays capped", () => {
+    expect(loadPenalty(3)).toBeCloseTo(0.06);
+    expect(loadPenalty(100)).toBeLessThanOrEqual(0.1);
+  });
+});
+
+describe("keywordOverlapBonus", () => {
+  test("rewards shared distinctive words", () => {
+    const bonus = keywordOverlapBonus(
+      "Postgres connection pooling exhaustion under load",
+      "Backend engineer diagnosing Postgres connection pooling issues"
+    );
+    expect(bonus).toBeGreaterThan(0);
+  });
+
+  test("ignores stopwords and short words", () => {
+    expect(keywordOverlapBonus("I want help please", "Happy to help you")).toBe(0);
+  });
+
+  test("is capped", () => {
+    expect(
+      keywordOverlapBonus(
+        "postgres react dns python testing resume french spanish mandarin",
+        "postgres react dns python testing resume french spanish mandarin expert"
+      )
+    ).toBeLessThanOrEqual(0.05);
+  });
+});
+
+describe("scoreCandidate", () => {
+  const emb = [1, 0];
+  const profile = "Backend engineer, Postgres and databases.";
+
+  test("a human outranks an identical virtual volunteer", () => {
+    const human = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile });
+    const virtual = scoreCandidate(emb, profile, {
+      embedding: emb,
+      profileSummary: profile,
+      isVirtual: true,
+    });
+    expect(human).toBeGreaterThan(virtual);
+  });
+
+  test("a busy volunteer yields to a fresher equal one", () => {
+    const fresh = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile });
+    const busy = scoreCandidate(emb, profile, {
+      embedding: emb,
+      profileSummary: profile,
+      matchCount: 5,
+    });
+    expect(fresh).toBeGreaterThan(busy);
   });
 });

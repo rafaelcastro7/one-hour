@@ -14,6 +14,7 @@ export default function OfferPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<"chat" | "form" | "quiz" | "done">("chat");
+  const [refused, setRefused] = useState(false);
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -76,14 +77,35 @@ export default function OfferPage() {
         </ol>
       )}
 
-      {step === "chat" && (
+      {step === "chat" && !refused && (
         <IntakeChat
           mode="offer"
           onDone={(h) => {
             setHistory(h);
             setStep("form");
           }}
+          onRefused={() => setRefused(true)}
         />
+      )}
+
+      {refused && (
+        <div className="text-center max-w-md space-y-4">
+          <p className="text-lg">Sessions last one full hour.</p>
+          <p className="text-sm text-neutral-400">
+            Every 1hour session is a full hour — that&apos;s the minimum commitment,
+            with no exceptions. If you can give a full hour, start over and let
+            the agent know.
+          </p>
+          <button
+            onClick={() => {
+              setRefused(false);
+              setHistory([]);
+            }}
+            className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
+          >
+            Start over — I can give an hour
+          </button>
+        </div>
       )}
 
       {step === "form" && (

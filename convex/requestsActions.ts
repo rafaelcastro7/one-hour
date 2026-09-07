@@ -3,7 +3,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { cosineSimilarity, penalisedScore } from "./matchScoring";
+import { scoreCandidate } from "./matchScoring";
 
 // Full pipeline: closes the need profile, generates its embedding, finds
 // the top-K candidates by similarity, and calls the LLM decision layer to
@@ -75,6 +75,8 @@ async function runMatchPipeline(
       category: string;
       profileSummary: string;
       embedding: number[];
+      matchCount?: number;
+      isVirtual?: boolean;
     }> = await ctx.runQuery(internal.volunteersQueries.getActiveVolunteers, {
       category: profile.category,
     });
@@ -87,16 +89,17 @@ async function runMatchPipeline(
       return;
     }
 
-    // Top-K by cosine similarity (K=3) before handing the decision to the
-    // LLM. The score is breadth-penalised: profiles that claim every skill
-    // at once otherwise reach the top-K for every query and crowd out real
-    // volunteers. See convex/matchScoring.ts and the harness in
-    // convex/adversarialTests.ts that demonstrates the attack.
+    // Top-K by shared retrieval scoring (K=3) before handing the decision to
+    // the LLM. One function scores everywhere (production, eval, red-team),
+    // combining cosine similarity with the breadth penalty (anti stuffing),
+    // the load penalty (anti congestion: busy volunteers yield to fresh ones),
+    // a lexical bonus (offsets flatter non-native embeddings when the right
+    // keywords are present), and the virtual penalty (humans first, AI fallback).
     const scored = volunteers
       .map((v) => ({
         id: v._id,
         summary: v.profileSummary,
-        score: penalisedScore(cosineSimilarity(embedding, v.embedding), v.profileSummary),
+        score: scoreCandidate(embedding, profile.summary, v),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
@@ -127,6 +130,12 @@ async function runMatchPipeline(
       matchedVolunteerId: decision.chosenId as any,
       matchScore: chosen?.score ?? 0,
       matchReasoning: decision.reasoning,
+    });
+
+    // Congestion accounting: the chosen volunteer's load grows, so future
+    // matches slightly prefer fresher volunteers (see loadPenalty).
+    await ctx.runMutation(internal.volunteers.recordMatch, {
+      volunteerId: decision.chosenId as any,
     });
   }
 }

@@ -46,18 +46,24 @@ export const runIntakeStep = action({
           `Your job is to understand, in at most 3-4 questions, what help the person ` +
           `needs (category: tech or languages), how urgent it is, and their preferred ` +
           `language. Ask one question at a time, in a human, friendly tone, never like ` +
-          `a form. When you have enough information, respond EXACTLY with the text ` +
-          `"READY_TO_CLOSE" followed by a one-sentence summary of the need (the summary ` +
-          `itself should be in English regardless of the conversation language, since ` +
-          `it's used internally for matching). ${languageNote}`
+          `a form. When you have enough information, respond with EXACTLY the single word ` +
+          `"READY_TO_CLOSE" and nothing else -- no summary, no punctuation, no extra text. ` +
+          `NEVER mention READY_TO_CLOSE, profiles, summaries, JSON, embeddings, matching, ` +
+          `or any internal process to the user, in any message. ${languageNote}`
         : `You are a brief, warm interviewer for a volunteering hub ("One Hour"). ` +
           `Your job is to understand, in at most 3-4 questions, what the person can ` +
           `offer as a volunteer (category: tech or languages), their level/experience, ` +
           `and their availability. Ask one question at a time, in a human, friendly ` +
-          `tone, never like a form. When you have enough information, respond EXACTLY ` +
-          `with the text "READY_TO_CLOSE" followed by a one-sentence summary of what ` +
-          `they offer (the summary itself should be in English regardless of the ` +
-          `conversation language, since it's used internally for matching). ${languageNote}`;
+          `tone, never like a form. Sessions last exactly 1 hour: that is the minimum ` +
+          `commitment, no exceptions. If the person offers less than an hour (15 or 30 ` +
+          `minutes, etc.), explain kindly that every session is one full hour and ask ` +
+          `them to confirm they can give a full hour. Only respond READY_TO_CLOSE when ` +
+          `they confirm at least one hour. If they definitively refuse the full hour, ` +
+          `respond with EXACTLY the single word "CANNOT_HELP" and nothing else. When you ` +
+          `have enough information, respond with EXACTLY ` +
+          `the single word "READY_TO_CLOSE" and nothing else -- no summary, no punctuation, ` +
+          `no extra text. NEVER mention READY_TO_CLOSE, profiles, summaries, JSON, embeddings, ` +
+          `matching, or any internal process to the user, in any message. ${languageNote}`;
 
     const completion = await client.chat.completions.create({
       model: CHAT_MODEL,
@@ -65,15 +71,25 @@ export const runIntakeStep = action({
       temperature: 0.7,
     });
 
-    return completion.choices[0].message.content ?? "";
+    // The token may arrive mid-text if the model chats first ("...so I can
+    // match you. READY_TO_CLOSE") -- startsWith missed that and the internal
+    // protocol leaked into the user-visible chat. Detect it anywhere and
+    // never surface anything from the token onward.
+    const raw = completion.choices[0].message.content ?? "";
+    if (raw.indexOf("CANNOT_HELP") !== -1) {
+      return { done: false, refused: true, message: "" };
+    }
+    if (raw.indexOf("READY_TO_CLOSE") !== -1) {
+      return { done: true, refused: false, message: "" };
+    }
+    return { done: false, refused: false, message: raw };
   },
 });
 
 /**
  * Closes the profile: takes the full history and produces a structured
  * summary (JSON mode) with category, normalized text, urgency, etc.
- */
-export const closeProfile = internalAction({
+ */export const closeProfile = internalAction({
   args: {
     history: v.array(
       v.object({
@@ -219,5 +235,43 @@ export const decideMatch = internalAction({
           : ""
         : "No suitable match found.",
     };
+  },
+});
+
+/**
+ * Instant AI helper: direct conversational help (no matching, no video)
+ * for when no human volunteer is available. Same language rule as intake:
+ * always reply in the user's language. Stays inside tech/languages help and
+ * routes anything else to professional resources.
+ */
+export const aiHelpStep = action({
+  args: {
+    history: v.array(
+      v.object({
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+      })
+    ),
+    category: v.union(v.literal("tech"), v.literal("languages")),
+  },
+  handler: async (ctx, { history, category }) => {
+    const client = getClient();
+    const completion = await client.chat.completions.create({
+      model: CHAT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            `You are Aria, the instant AI volunteer of the "1hour" hub. Help directly with ` +
+            `${category === "tech" ? "tech questions (debugging, concepts, tools)" : "language practice (conversation, corrections, explanations)"}. ` +
+            `IMPORTANT: always reply in the SAME language the person writes in (English, Spanish, Chinese, French at least). ` +
+            `You are an AI, say so if asked — never pretend to be human. If the person needs medical, legal, or ` +
+            `mental-health help or is in crisis, do not attempt it: point them to https://findahelpline.com and stop.`,
+        },
+        ...history,
+      ],
+      temperature: 0.7,
+    });
+    return completion.choices[0].message.content ?? "";
   },
 });

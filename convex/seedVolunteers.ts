@@ -121,6 +121,28 @@ const PENDING_VOLUNTEERS = [
   },
 ];
 
+// AI helpers: clearly-labeled virtual volunteers for instant help when no
+// human is around. They carry real embeddings and compete in the same pool,
+// but the virtual penalty keeps them below any human candidate.
+const VIRTUAL_VOLUNTEERS = [
+  {
+    name: "Aria (AI volunteer) — tech",
+    email: "ai-tech@example.com",
+    category: "tech" as const,
+    profileSummary:
+      "AI volunteer for instant tech help: debugging, programming concepts, databases and tooling questions. Answers immediately, no scheduling needed. Not a human — for hands-on or sensitive issues prefer a human volunteer.",
+    availability: "instant, 24/7",
+  },
+  {
+    name: "Aria (AI volunteer) — languages",
+    email: "ai-languages@example.com",
+    category: "languages" as const,
+    profileSummary:
+      "AI volunteer for instant language practice in English, Spanish, French or Mandarin: conversation, corrections and explanations. Answers immediately, no scheduling needed. Not a human — for real conversation prefer a human volunteer.",
+    availability: "instant, 24/7",
+  },
+];
+
 /**
  * Seeds the demo volunteer pool with pre-computed embeddings, already
  * approved and active, so the matching pipeline has real competition
@@ -164,8 +186,28 @@ export const seed = internalAction({
     }
 
     let pendingInserted = 0;
-    for (const v of PENDING_VOLUNTEERS) {
+    let virtualInserted = 0;
+    for (const v of VIRTUAL_VOLUNTEERS) {
       if (existingEmails.has(v.email)) continue;
+
+      const res = await client.embeddings.create({
+        model: "Qwen/Qwen3-Embedding-8B",
+        input: v.profileSummary,
+      });
+
+      await ctx.runMutation(internal.volunteersMutations.insertSeedVolunteer, {
+        name: v.name,
+        email: v.email,
+        category: v.category,
+        rawOffer: v.profileSummary,
+        profileSummary: v.profileSummary,
+        availability: v.availability,
+        embedding: res.data[0].embedding,
+        isVirtual: true,
+      });
+      virtualInserted++;
+    }
+    for (const v of PENDING_VOLUNTEERS) {      if (existingEmails.has(v.email)) continue;
 
       const res = await client.embeddings.create({
         model: "Qwen/Qwen3-Embedding-8B",
@@ -188,6 +230,7 @@ export const seed = internalAction({
     return {
       inserted,
       pendingInserted,
+      virtualInserted,
       skipped: DEMO_VOLUNTEERS.length - inserted,
     };
   },

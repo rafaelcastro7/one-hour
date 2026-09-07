@@ -25,6 +25,9 @@ export default defineSchema({
     // Congestion control demotes over-matched volunteers so the load spreads.
     matchCount: v.optional(v.number()),
     languages: v.optional(v.string()), // languages they can help in
+    // True for AI helpers: clearly-labeled instant fallback when no human
+    // is available. Demoted in scoring so humans always win when present.
+    isVirtual: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])

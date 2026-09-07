@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { cosineSimilarity, penalisedScore } from "./matchScoring";
+import { scoreCandidate } from "./matchScoring";
 
 // Mirrors convex/nebius.ts's client setup exactly, but kept separate so the
 // eval runner can measure latency/tokens without touching the production
@@ -99,12 +99,13 @@ export const runOne = internalAction({
       estimatedTokens += embedRes.usage?.total_tokens ?? 0;
       const embedding = embedRes.data[0].embedding;
 
+      const needSummary = profile.summary ?? c.needText;
       const candidates = volunteers
         .filter((v) => v.category === (profile.category ?? c.expectedCategory))
         .map((v) => ({
           id: v._id,
           summary: v.profileSummary,
-          score: penalisedScore(cosineSimilarity(embedding, v.embedding), v.profileSummary),
+          score: scoreCandidate(embedding, needSummary, v),
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, 3);

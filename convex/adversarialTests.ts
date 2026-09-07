@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { cosineSimilarity, penalisedScore } from "./matchScoring";
+import { scoreCandidate } from "./matchScoring";
 
 // Red-team harness for the matching pipeline.
 //
@@ -116,10 +116,7 @@ export const probe = internalAction({
         id: vol._id,
         name: vol.name,
         summary: vol.profileSummary,
-        score: penalisedScore(
-          cosineSimilarity(embedding, vol.embedding),
-          vol.profileSummary
-        ),
+        score: scoreCandidate(embedding, needText, vol),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);

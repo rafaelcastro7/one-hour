@@ -3,7 +3,7 @@
 import OpenAI from "openai";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { cosineSimilarity, penalisedScore } from "./matchScoring";
+import { scoreCandidate } from "./matchScoring";
 
 // Linguistic bias audit.
 //
@@ -86,7 +86,7 @@ async function rankFor(
   const ranked = volunteers
     .map((vol) => ({
       email: vol.email,
-      score: penalisedScore(cosineSimilarity(embedding, vol.embedding), vol.profileSummary),
+      score: scoreCandidate(embedding, text, vol),
     }))
     .sort((a, b) => b.score - a.score);
 

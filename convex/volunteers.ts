@@ -124,3 +124,14 @@ export const listActive = query({
     return category ? withEmbeddings.filter((v) => v.category === category) : withEmbeddings;
   },
 });
+
+// Congestion accounting: called each time a volunteer is matched, so the
+// load penalty (see loadPenalty in matchScoring.ts) spreads future matches.
+export const recordMatch = internalMutation({
+  args: { volunteerId: v.id("volunteers") },
+  handler: async (ctx, { volunteerId }) => {
+    const vol = await ctx.db.get(volunteerId);
+    if (!vol) return;
+    await ctx.db.patch(volunteerId, { matchCount: (vol.matchCount ?? 0) + 1 });
+  },
+});

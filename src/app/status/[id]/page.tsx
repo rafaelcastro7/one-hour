@@ -85,6 +85,12 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
             {request.matchReasoning ?? "Try again later, we keep adding volunteers."}
           </p>
           <Link
+            href="/ai-help"
+            className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
+          >
+            Talk to Aria (AI) now
+          </Link>
+          <Link
             href="/request"
             className="rounded-lg border-2 border-neutral-700 text-neutral-100 font-semibold px-6 py-3 hover:border-amber-400 transition-colors"
           >

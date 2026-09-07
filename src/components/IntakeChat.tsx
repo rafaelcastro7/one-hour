@@ -10,9 +10,11 @@ type Message = { role: "user" | "assistant"; content: string };
 export function IntakeChat({
   mode,
   onDone,
+  onRefused,
 }: {
   mode: "need" | "offer";
   onDone: (history: Message[]) => void;
+  onRefused?: () => void;
 }) {
   const runIntakeStep = useAction(api.nebius.runIntakeStep);
   const [messages, setMessages] = useState<Message[]>([
@@ -38,14 +40,21 @@ export function IntakeChat({
 
     try {
       const reply = await runIntakeStep({ history: newHistory, mode });
-      if (typeof reply !== "string" || reply.length === 0) {
+      if (!reply || typeof reply.done !== "boolean") {
         throw new Error("Empty response from the assistant.");
       }
-      if (reply.startsWith("READY_TO_CLOSE")) {
+      if (reply.refused) {
+        onRefused?.();
+        return;
+      }
+      if (reply.done) {
         onDone(newHistory);
         return;
       }
-      setMessages([...newHistory, { role: "assistant", content: reply }]);
+      if (!reply.message) {
+        throw new Error("Empty response from the assistant.");
+      }
+      setMessages([...newHistory, { role: "assistant", content: reply.message }]);
     } catch {
       setError("The assistant didn't respond in time. Your message is saved — try sending it again.");
     } finally {
