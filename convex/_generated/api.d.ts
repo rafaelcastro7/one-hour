@@ -12,6 +12,7 @@ import type * as adversarialTests from "../adversarialTests.js";
 import type * as biasAudit from "../biasAudit.js";
 import type * as evalRunner from "../evalRunner.js";
 import type * as evaluation from "../evaluation.js";
+import type * as linkup from "../linkup.js";
 import type * as matchScoring from "../matchScoring.js";
 import type * as nebius from "../nebius.js";
 import type * as requests from "../requests.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   biasAudit: typeof biasAudit;
   evalRunner: typeof evalRunner;
   evaluation: typeof evaluation;
+  linkup: typeof linkup;
   matchScoring: typeof matchScoring;
   nebius: typeof nebius;
   requests: typeof requests;

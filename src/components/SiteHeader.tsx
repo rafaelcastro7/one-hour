@@ -11,6 +11,9 @@ export function SiteHeader() {
           <Link href="/about" className="hover:text-amber-400 transition-colors">
             About
           </Link>
+          <Link href="/jury" className="hover:text-amber-400 transition-colors">
+            Judges
+          </Link>
           <Link href="/eval" className="hover:text-amber-400 transition-colors">
             Evidence
           </Link>

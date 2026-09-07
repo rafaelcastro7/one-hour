@@ -99,9 +99,9 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
           <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-6 max-w-sm text-left space-y-2">
             <p className="font-semibold">{request.volunteer.name}</p>
             <p className="text-sm text-neutral-400">{request.volunteer.profileSummary}</p>
-            <p className="text-xs text-neutral-600 mt-2">
-              Similarity: {typeof request.matchScore === "number" ? `${(request.matchScore * 100).toFixed(0)}%` : "—"} — {request.matchReasoning}
-            </p>
+            {request.matchReasoning && (
+              <p className="text-sm text-neutral-300 mt-2">{request.matchReasoning}</p>
+            )}
           </div>
           {confirmError && (
             <p className="text-sm text-red-300" role="alert">{confirmError}</p>
