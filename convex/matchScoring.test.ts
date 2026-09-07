@@ -5,6 +5,7 @@ import {
   penalisedScore,
   loadPenalty,
   keywordOverlapBonus,
+  availabilityBonus,
   scoreCandidate,
 } from "./matchScoring";
 
@@ -132,5 +133,27 @@ describe("scoreCandidate", () => {
       matchCount: 5,
     });
     expect(fresh).toBeGreaterThan(busy);
+  });
+
+  test("matching availability breaks ties, ASAP constrains nothing", () => {
+    const free = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile, slots: ["tue-evening"] }, ["tue-evening"]);
+    const busy = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile, slots: ["wed-morning"] }, ["tue-evening"]);
+    expect(free).toBeGreaterThan(busy);
+    const asap = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile, slots: ["wed-morning"] }, []);
+    expect(asap).toBeCloseTo(
+      scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile, slots: ["wed-morning"] }),
+      5
+    );
+  });
+});
+
+describe("availabilityBonus", () => {
+  test("empty request slots mean no constraint", () => {
+    expect(availabilityBonus([], ["tue-evening"])).toBe(0);
+    expect(availabilityBonus(undefined, ["tue-evening"])).toBe(0);
+  });
+
+  test("volunteers without slots get no bonus", () => {
+    expect(availabilityBonus(["tue-evening"], [])).toBe(0);
   });
 });

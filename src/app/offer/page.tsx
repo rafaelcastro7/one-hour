@@ -2,10 +2,19 @@
 
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { IntakeChat } from "@/components/IntakeChat";
 import { QUIZZES, QUIZ_PASS, levelFor } from "@/components/quizBank";
+import {
+  BLOCKS,
+  DAYS,
+  DAY_LABEL,
+  BLOCK_LABEL,
+  PRESETS,
+  PresetId,
+  SlotId,
+} from "@/components/availability";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -24,17 +33,21 @@ export default function OfferPage() {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const linkedinValid = /^[A-Za-z0-9-]{3,100}$/.test(linkedinUser.trim());
   const [answers, setAnswers] = useState<Array<number | null>>([null, null, null]);
+  const [preset, setPreset] = useState<PresetId>("weekday-evenings");
+  const [customizing, setCustomizing] = useState(false);
+  const [customSlots, setCustomSlots] = useState<SlotId[]>([]);
+  const slots: SlotId[] = customizing
+    ? customSlots
+    : (PRESETS.find((p) => p.id === preset)?.slots ?? []);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const linkedinValid = /^https:\/\/(www\.)?linkedin\.com\/.+/.test(linkedin.trim());
   const canContinue = name.trim().length > 0 && emailValid && linkedinValid;
 
   const questions = QUIZZES[category];
   const score = answers.filter((a, i) => a === questions[i].answer).length;
   const quizDone = answers.every((a) => a !== null);
-  const canSubmit = quizDone && score >= QUIZ_PASS && !submitting;
+  const canSubmit = quizDone && score >= QUIZ_PASS && slots.length > 0 && !submitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -51,6 +64,7 @@ export default function OfferPage() {
         linkedinUrl,
         quizScore: score,
         skillLevel: levelFor(score),
+        slots: [...slots],
       });
       setStep("done");
     } catch (e) {
@@ -181,21 +195,79 @@ export default function OfferPage() {
             <option value="tech">Tech</option>
             <option value="languages">Languages</option>
           </select>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setStep("chat")}
-              className="rounded-lg border border-neutral-700 px-4 py-2.5 text-sm hover:border-amber-400 transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep("quiz")}
-              disabled={!canContinue}
-              className="flex-1 rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-50"
-            >
-              Continue to skills check
-            </button>
-          </div>
+          <fieldset>
+            <legend className="text-sm text-neutral-400 mb-2">When are you usually free for sessions?</legend>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Availability preset">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={!customizing && preset === p.id}
+                  onClick={() => {
+                    setPreset(p.id);
+                    setCustomizing(false);
+                  }}
+                  className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                    !customizing && preset === p.id
+                      ? "bg-amber-400 text-neutral-900 font-semibold border-amber-400"
+                      : "border-neutral-700 text-neutral-300 hover:border-amber-400"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={customizing}
+                onClick={() => setCustomizing(true)}
+                className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                  customizing
+                    ? "bg-amber-400 text-neutral-900 font-semibold border-amber-400"
+                    : "border-neutral-700 text-neutral-300 hover:border-amber-400"
+                }`}
+              >
+                Custom…
+              </button>
+            </div>
+            {customizing && (
+              <div className="mt-3 grid grid-cols-4 gap-1 text-xs" role="group" aria-label="Custom availability grid">
+                <span />
+                {BLOCKS.map((b) => (
+                  <span key={b} className="text-neutral-500 text-center capitalize">{b}</span>
+                ))}
+                {DAYS.map((d) => (
+                  <Fragment key={d}>
+                    <span className="text-neutral-500 capitalize self-center">{DAY_LABEL[d]}</span>
+                    {BLOCKS.map((b) => {
+                      const id = `${d}-${b}` as SlotId;
+                      const on = customSlots.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={on}
+                          aria-label={`${DAY_LABEL[d]} ${b}`}
+                          onClick={() =>
+                            setCustomSlots((s) => (on ? s.filter((x) => x !== id) : [...s, id]))
+                          }
+                          className={`rounded px-1 py-1.5 border transition-colors ${
+                            on
+                              ? "bg-amber-400 border-amber-400 text-neutral-900 font-bold"
+                              : "border-neutral-700 text-neutral-600"
+                          }`}
+                        >
+                          {on ? "✓" : "·"}
+                        </button>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
+            )}
+          </fieldset>
         </div>
       )}
 
@@ -226,6 +298,9 @@ export default function OfferPage() {
               Score: {score}/3 ({levelFor(score)})
               {score < QUIZ_PASS && (
                 <span className="text-red-300"> — you need {QUIZ_PASS} to continue.</span>
+              )}
+              {slots.length === 0 && (
+                <span className="text-red-300"> Pick at least one availability slot (go back one step).</span>
               )}
             </p>
           )}

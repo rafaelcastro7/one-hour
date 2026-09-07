@@ -23,10 +23,14 @@ export const register = mutation({
       v.literal("intermediate"),
       v.literal("advanced")
     ),
+    slots: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     if (!/^https:\/\/(www\.)?linkedin\.com\/.+/.test(args.linkedinUrl.trim())) {
       throw new Error("A valid LinkedIn profile URL is required to register.");
+    }
+    if (args.slots.length === 0) {
+      throw new Error("Pick at least one availability slot.");
     }
     const id = await ctx.db.insert("volunteers", {
       name: args.name,
@@ -41,6 +45,7 @@ export const register = mutation({
       linkedinUrl: args.linkedinUrl.trim(),
       quizScore: args.quizScore,
       skillLevel: args.skillLevel,
+      slots: args.slots,
       createdAt: Date.now(),
     });
 

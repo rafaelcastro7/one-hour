@@ -15,6 +15,8 @@ export const create = mutation({
       })
     ),
     preferredTime: v.string(),
+    preferredSlots: v.array(v.string()),
+    preferredTz: v.string(),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("requests", {
@@ -26,6 +28,8 @@ export const create = mutation({
       embedding: [],
       status: "searching",
       preferredTime: args.preferredTime,
+      preferredSlots: args.preferredSlots,
+      preferredTz: args.preferredTz,
       createdAt: Date.now(),
     });
 

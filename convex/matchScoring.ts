@@ -110,11 +110,24 @@ export function keywordOverlapBonus(needText: string, profileText: string): numb
 // as competition for real people.
 const VIRTUAL_PENALTY = 0.15;
 
+// Scheduling overlap: when the requester's slots intersect the volunteer's,
+// both can actually meet. Small bonus -- availability never overrides skill
+// fit, but it breaks ties toward people who are free when needed.
+const AVAILABILITY_BONUS = 0.05;
+
+export function availabilityBonus(reqSlots: string[] | undefined, volSlots: string[] | undefined): number {
+  if (!reqSlots || reqSlots.length === 0) return 0;
+  if (!volSlots || volSlots.length === 0) return 0;
+  const set = new Set(volSlots);
+  return reqSlots.some((s) => set.has(s)) ? AVAILABILITY_BONUS : 0;
+}
+
 export type ScoredVolunteer = {
   embedding: number[];
   profileSummary: string;
   matchCount?: number;
   isVirtual?: boolean;
+  slots?: string[];
 };
 
 /**
@@ -125,7 +138,8 @@ export type ScoredVolunteer = {
 export function scoreCandidate(
   needEmbedding: number[],
   needSummary: string,
-  vol: ScoredVolunteer
+  vol: ScoredVolunteer,
+  reqSlots?: string[]
 ): number {
   const base = penalisedScore(
     cosineSimilarity(needEmbedding, vol.embedding),
@@ -135,6 +149,7 @@ export function scoreCandidate(
     base -
     loadPenalty(vol.matchCount ?? 0) +
     keywordOverlapBonus(needSummary, vol.profileSummary) -
-    (vol.isVirtual ? VIRTUAL_PENALTY : 0)
+    (vol.isVirtual ? VIRTUAL_PENALTY : 0) +
+    availabilityBonus(reqSlots, vol.slots)
   );
 }

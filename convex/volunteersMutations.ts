@@ -18,14 +18,16 @@ export const insertSeedVolunteer = internalMutation({
     // false to leave the volunteer in the admin queue instead.
     approved: v.optional(v.boolean()),
     isVirtual: v.optional(v.boolean()),
+    slots: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { approved, isVirtual, ...args }) => {
+  handler: async (ctx, { approved, isVirtual, slots, ...args }) => {
     const isApproved = approved ?? true;
     return await ctx.db.insert("volunteers", {
       ...args,
       verified: isApproved,
       active: isApproved,
       isVirtual: isVirtual ?? false,
+      slots: slots ?? [],
       createdAt: Date.now(),
     });
   },
@@ -78,5 +80,16 @@ export const saveProfile = internalMutation({
       availability: args.availability,
       embedding: args.embedding,
     });
+  },
+});
+
+// Backfills structured slots for rows seeded before slots existed.
+export const setSlots = internalMutation({
+  args: {
+    volunteerId: v.id("volunteers"),
+    slots: v.array(v.string()),
+  },
+  handler: async (ctx, { volunteerId, slots }) => {
+    await ctx.db.patch(volunteerId, { slots });
   },
 });

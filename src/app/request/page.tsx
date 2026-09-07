@@ -6,6 +6,8 @@ import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { IntakeChat } from "@/components/IntakeChat";
 import { SafetyScreen } from "@/components/SafetyScreen";
+import { requestSlotOptions, userTimeZone } from "@/components/availability";
+import { useMemo } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -19,7 +21,11 @@ export default function RequestPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [category, setCategory] = useState<"tech" | "languages">("tech");
-  const [preferredTime, setPreferredTime] = useState("Right now");
+  const slotOptions = useMemo(() => requestSlotOptions(), []);
+  const [slotIndex, setSlotIndex] = useState(0);
+  const preferredTime = slotOptions[slotIndex].label;
+  const preferredSlots = slotOptions[slotIndex].slots;
+  const preferredTz = useMemo(() => userTimeZone(), []);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -32,7 +38,7 @@ export default function RequestPage() {
     setSubmitError(null);
     try {
       const rawNeed = history.filter((m) => m.role === "user").map((m) => m.content).join(" ");
-      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime });
+      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime, preferredSlots: [...preferredSlots], preferredTz });
       router.push(`/status/${id}`);
     } catch {
       setSubmitError("Couldn't create your request. Check your connection and try again.");
@@ -112,22 +118,22 @@ export default function RequestPage() {
             <option value="languages">Languages</option>
           </select>
           <fieldset>
-            <legend className="text-sm text-neutral-400 mb-2">When do you want the session?</legend>
+            <legend className="text-sm text-neutral-400 mb-2">When do you want the session? <span className="text-neutral-600">({preferredTz})</span></legend>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Preferred time">
-              {["Right now", "Today evening", "Tomorrow", "Weekend"].map((slot) => (
+              {slotOptions.map((opt, i) => (
                 <button
-                  key={slot}
+                  key={opt.label}
                   type="button"
                   role="radio"
-                  aria-checked={preferredTime === slot}
-                  onClick={() => setPreferredTime(slot)}
+                  aria-checked={slotIndex === i}
+                  onClick={() => setSlotIndex(i)}
                   className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
-                    preferredTime === slot
+                    slotIndex === i
                       ? "bg-amber-400 text-neutral-900 font-semibold border-amber-400"
                       : "border-neutral-700 text-neutral-300 hover:border-amber-400"
                   }`}
                 >
-                  {slot}
+                  {opt.label}
                 </button>
               ))}
             </div>

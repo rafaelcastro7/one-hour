@@ -28,6 +28,9 @@ export default defineSchema({
     // True for AI helpers: clearly-labeled instant fallback when no human
     // is available. Demoted in scoring so humans always win when present.
     isVirtual: v.optional(v.boolean()),
+    // Structured weekly availability ("mon-evening", ...). Free-text
+    // `availability` stays for humans; these ids are what matching verifies.
+    slots: v.optional(v.array(v.string())),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
@@ -59,6 +62,11 @@ export default defineSchema({
     // Scheduling: when they want the session (free choice from set slots).
     // Shown on the match so both sides coordinate; rooms generate on confirm.
     preferredTime: v.optional(v.string()),
+    // Structured version of the above: slot ids the request overlaps with,
+    // plus the requester's timezone for honest display. Empty = "as soon as
+    // possible", no time constraint applied.
+    preferredSlots: v.optional(v.array(v.string())),
+    preferredTz: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])

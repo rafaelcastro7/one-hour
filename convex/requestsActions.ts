@@ -2,7 +2,7 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { scoreCandidate } from "./matchScoring";
 
 // Full pipeline: closes the need profile, generates its embedding, finds
@@ -74,6 +74,11 @@ async function runMatchPipeline(
           : 60,
     });
 
+    // Scheduling overlap: the requester's slots (empty = ASAP, no constraint).
+    const reqDoc: { preferredSlots?: string[]; preferredTime?: string } | null =
+      await ctx.runQuery(api.requests.get, { requestId });
+    const reqSlots = reqDoc?.preferredSlots ?? [];
+
     const volunteers: Array<{
       _id: string;
       category: string;
@@ -81,6 +86,8 @@ async function runMatchPipeline(
       embedding: number[];
       matchCount?: number;
       isVirtual?: boolean;
+      slots?: string[];
+      availability?: string;
     }> = await ctx.runQuery(internal.volunteersQueries.getActiveVolunteers, {
       category: profile.category,
     });
@@ -103,7 +110,8 @@ async function runMatchPipeline(
       .map((v) => ({
         id: v._id,
         summary: v.profileSummary,
-        score: scoreCandidate(embedding, profile.summary, v),
+        score: scoreCandidate(embedding, profile.summary, v, reqSlots),
+        availability: v.availability ?? v.slots?.join(", ") ?? "",
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
@@ -114,6 +122,7 @@ async function runMatchPipeline(
         ctx.runAction(internal.nebius.decideMatch, {
           needSummary: profile.summary,
           candidates: scored,
+          preferredTime: reqDoc?.preferredTime ?? undefined,
         })
     );
 

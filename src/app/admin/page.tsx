@@ -108,6 +108,11 @@ export default function AdminPage() {
                 <span className="text-neutral-500">
                   Quiz: {v.quizScore ?? 0}/3{v.skillLevel ? ` (${v.skillLevel})` : ""}
                 </span>
+                {v.slots && v.slots.length > 0 && (
+                  <span className="text-neutral-500">
+                    Free: {v.slots.slice(0, 4).join(", ")}{v.slots.length > 4 ? ` +${v.slots.length - 4}` : ""}
+                  </span>
+                )}
               </div>
             </div>
             <button

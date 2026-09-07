@@ -148,15 +148,39 @@ const VIRTUAL_VOLUNTEERS = [
  * approved and active, so the matching pipeline has real competition
  * between candidates to reason about.
  */
+
+// Backfills structured slots from the legacy free-text availability so old
+// seeds participate in overlap matching.
+function slotsFor(availability: string, isVirtual = false): string[] {
+  if (isVirtual) {
+    const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+    const blocks = ["morning", "afternoon", "evening"];
+    return days.flatMap((d) => blocks.map((b) => `${d}-${b}`));
+  }
+  const a = availability.toLowerCase();
+  if (a.includes("weekend")) {
+    return ["sat-morning", "sat-afternoon", "sat-evening", "sun-morning", "sun-afternoon", "sun-evening"];
+  }
+  if (a.includes("morning")) {
+    return ["mon-morning", "tue-morning", "wed-morning", "thu-morning", "fri-morning"];
+  }
+  if (a.includes("afternoon")) {
+    return ["mon-afternoon", "tue-afternoon", "wed-afternoon", "thu-afternoon", "fri-afternoon"];
+  }
+  if (a.includes("evening")) {
+    return ["mon-evening", "tue-evening", "wed-evening", "thu-evening", "fri-evening"];
+  }
+  const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+  const blocks = ["morning", "afternoon", "evening"];
+  return days.flatMap((d) => blocks.map((b) => `${d}-${b}`));
+}
 export const seed = internalAction({
   args: {},
   handler: async (ctx) => {
     // Must include pending volunteers too, or re-running the seed would
     // duplicate them (getAllActiveVolunteers only sees approved ones).
-    const existing: Array<{ email: string }> = await ctx.runQuery(
-      internal.volunteersQueries.getEveryVolunteer,
-      {}
-    );
+    const existing: Array<{ _id: any; email: string; availability?: string; slots?: string[] }> =
+      await ctx.runQuery(internal.volunteersQueries.getEveryVolunteer, {});
     const existingEmails = new Set(existing.map((v) => v.email));
 
     const client = new OpenAI({
@@ -181,12 +205,12 @@ export const seed = internalAction({
         profileSummary: v.profileSummary,
         availability: v.availability,
         embedding: res.data[0].embedding,
+        slots: slotsFor(v.availability),
       });
       inserted++;
     }
 
-    let pendingInserted = 0;
-    let virtualInserted = 0;
+    let pendingInserted = 0;    let virtualInserted = 0;
     for (const v of VIRTUAL_VOLUNTEERS) {
       if (existingEmails.has(v.email)) continue;
 
@@ -203,6 +227,7 @@ export const seed = internalAction({
         profileSummary: v.profileSummary,
         availability: v.availability,
         embedding: res.data[0].embedding,
+        slots: slotsFor(v.availability, true),
         isVirtual: true,
       });
       virtualInserted++;
@@ -222,6 +247,7 @@ export const seed = internalAction({
         profileSummary: v.profileSummary,
         availability: v.availability,
         embedding: res.data[0].embedding,
+        slots: slotsFor(v.availability),
         approved: false,
       });
       pendingInserted++;
@@ -231,7 +257,30 @@ export const seed = internalAction({
       inserted,
       pendingInserted,
       virtualInserted,
+      backfilled: await backfillExisting(ctx, existing),
       skipped: DEMO_VOLUNTEERS.length - inserted,
     };
   },
 });
+
+/**
+ * Gives structured slots to rows seeded before slots existed, so old pool
+ * members participate in overlap matching. Idempotent: skips rows that
+ * already have slots.
+ */
+async function backfillExisting(
+  ctx: any,
+  existing: Array<{ _id: any; email: string; availability?: string; slots?: string[] }>
+): Promise<number> {
+  let backfilled = 0;
+  for (const v of existing) {
+    if (v.slots && v.slots.length > 0) continue;
+    const isVirtual = v.email.startsWith("ai-");
+    await ctx.runMutation(internal.volunteersMutations.setSlots, {
+      volunteerId: v._id,
+      slots: slotsFor(v.availability ?? "flexible", isVirtual),
+    });
+    backfilled++;
+  }
+  return backfilled;
+}

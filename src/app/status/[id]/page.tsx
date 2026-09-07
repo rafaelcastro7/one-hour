@@ -121,7 +121,15 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
               </p>
             )}
             {request.preferredTime && (
-              <p className="text-xs text-neutral-500">Session wanted: {request.preferredTime}</p>
+              <p className="text-xs text-neutral-500">
+                Session wanted: {request.preferredTime}
+                {request.preferredTz ? ` (${request.preferredTz})` : ""}
+              </p>
+            )}
+            {request.volunteer.availability && !request.volunteer.isVirtual && (
+              <p className="text-xs text-neutral-500">
+                {request.volunteer.name.split(" ")[0]} is usually free: {request.volunteer.availability}
+              </p>
             )}
             {request.matchReasoning && (
               <p className="text-sm text-neutral-300 mt-2">{request.matchReasoning}</p>
