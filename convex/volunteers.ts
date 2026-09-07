@@ -16,8 +16,18 @@ export const register = mutation({
         content: v.string(),
       })
     ),
+    linkedinUrl: v.string(),
+    quizScore: v.number(),
+    skillLevel: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
   },
   handler: async (ctx, args) => {
+    if (!/^https:\/\/(www\.)?linkedin\.com\/.+/.test(args.linkedinUrl.trim())) {
+      throw new Error("A valid LinkedIn profile URL is required to register.");
+    }
     const id = await ctx.db.insert("volunteers", {
       name: args.name,
       email: args.email,
@@ -28,6 +38,9 @@ export const register = mutation({
       availability: "",
       verified: false, // manual human gate before activation
       active: false,
+      linkedinUrl: args.linkedinUrl.trim(),
+      quizScore: args.quizScore,
+      skillLevel: args.skillLevel,
       createdAt: Date.now(),
     });
 
@@ -81,6 +94,18 @@ export const approve = mutation({
     if (volunteer.embedding.length === 0) {
       throw new Error(
         "This volunteer has no profile embedding (intake likely failed). Re-run their intake before approving."
+      );
+    }
+
+    // Minimum-knowledge gate: at least 2/3 quiz answers plus a LinkedIn URL.
+    // Mirrors QUIZ_PASS in src/components/quizBank.ts (kept as a literal here
+    // so the rule holds even if the frontend bank changes).
+    if (!volunteer.linkedinUrl) {
+      throw new Error("This volunteer has no LinkedIn profile on file. Ask them to register again with one.");
+    }
+    if ((volunteer.quizScore ?? 0) < 2) {
+      throw new Error(
+        `Quiz score ${volunteer.quizScore ?? 0}/3 is below the 2/3 minimum. They need to retake the skills check.`
       );
     }
 

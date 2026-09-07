@@ -13,6 +13,18 @@ export default defineSchema({
     availability: v.string(), // free-form text: "weekday afternoons", etc.
     verified: v.boolean(), // manual human approval before activating
     active: v.boolean(), // whether they're available to receive matches now
+    // Volunteer validation: LinkedIn identity + minimum-knowledge quiz.
+    // Optional so existing seeded rows keep working; new registrations
+    // always set them, and approve() rejects rows that lack them.
+    linkedinUrl: v.optional(v.string()),
+    quizScore: v.optional(v.number()), // correct answers out of QUIZ_LENGTH
+    skillLevel: v.optional(
+      v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced"))
+    ),
+    // Two-sided matching: how many matches this volunteer already served.
+    // Congestion control demotes over-matched volunteers so the load spreads.
+    matchCount: v.optional(v.number()),
+    languages: v.optional(v.string()), // languages they can help in
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
