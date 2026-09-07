@@ -6,7 +6,8 @@ import { api } from "../../../convex/_generated/api";
 import { PipelineTips } from "@/components/PipelineTips";
 import { AriaAvatar } from "@/components/AriaAvatar";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Source = { url: string | null; name: string | null };
+type Message = { role: "user" | "assistant"; content: string; sources?: Source[] };
 
 export default function AiHelpPage() {
   const aiHelpStep = useAction(api.nebius.aiHelpStep);
@@ -26,8 +27,11 @@ export default function AiHelpPage() {
     setLoading(true);
     setError(null);
     try {
-      const reply = await aiHelpStep({ history: newHistory, category });
-      setMessages([...newHistory, { role: "assistant", content: reply }]);
+      const res = await aiHelpStep({ history: newHistory, category });
+      setMessages([
+        ...newHistory,
+        { role: "assistant", content: res.reply, sources: res.sources },
+      ]);
     } catch {
       setError("Aria didn't respond in time — try sending your message again.");
     } finally {
@@ -78,6 +82,27 @@ export default function AiHelpPage() {
             }`}
           >
             {m.content}
+            {m.sources && m.sources.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-neutral-700 space-y-1">
+                <p className="text-xs text-neutral-500">Sources:</p>
+                {m.sources.map((s, j) => (
+                  <div key={j}>
+                    {s.url ? (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-400 underline break-all"
+                      >
+                        {s.name ?? s.url}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-neutral-400">{s.name}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {loading && (

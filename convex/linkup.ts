@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 
 // Linkup (production-grade web search API for AI) integration.
@@ -55,8 +55,7 @@ export const verifyResource = action({
   },
 });
 
-export const searchRegistry = action({
-  args: { query: v.string() },
+export const searchRegistry = action({  args: { query: v.string() },
   handler: async (_ctx, { query }) => {
     const res = await fetch(`${LINKUP_BASE}/search`, {
       method: "POST",
@@ -83,5 +82,42 @@ export const searchRegistry = action({
         .slice(0, 5)
         .map((s) => ({ url: s.url ?? null, name: s.name ?? null })),
     };
+  },
+});
+
+// Internal web grounding for Aria (the AI helper): fast live sources for a
+// user question. Called server-to-server from nebius.aiHelpStep so every AI
+// answer can cite real pages instead of relying on model memory alone.
+// Failures resolve to empty sources -- help still works, just uncited.
+export const groundHelp = internalAction({
+  args: { query: v.string() },
+  handler: async (_ctx, { query }) => {
+    try {
+      const res = await fetch(`${LINKUP_BASE}/search`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getKey()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          q: query,
+          depth: "standard",
+          outputType: "sourcedAnswer",
+        }),
+      });
+      if (!res.ok) return { answer: "", sources: [] as Array<{ url: string | null; name: string | null }> };
+      const data = (await res.json()) as {
+        answer?: string;
+        sources?: Array<{ url?: string; name?: string }>;
+      };
+      return {
+        answer: (data.answer ?? "").slice(0, 800),
+        sources: (data.sources ?? [])
+          .slice(0, 3)
+          .map((s) => ({ url: s.url ?? null, name: s.name ?? null })),
+      };
+    } catch {
+      return { answer: "", sources: [] as Array<{ url: string | null; name: string | null }> };
+    }
   },
 });

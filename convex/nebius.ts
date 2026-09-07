@@ -305,6 +305,28 @@ export const aiHelpStep = action({
   },
   handler: async (ctx, { history, category }) => {
     const client = getClient();
+    // Ground every answer in live web sources so Aria helps with real,
+    // current references instead of model memory alone. Best-effort: if the
+    // search fails, help continues uncited rather than failing the chat.
+    const lastUser = [...history].reverse().find((m) => m.role === "user");
+    let grounding = { answer: "", sources: [] as Array<{ url: string | null; name: string | null }> };
+    if (lastUser && lastUser.content.trim().length > 10) {
+      try {
+        grounding = await ctx.runAction(internal.linkup.groundHelp, {
+          query: lastUser.content.slice(0, 300),
+        });
+      } catch {
+        // uncited fallback below
+      }
+    }
+    const webContext =
+      grounding.sources.length > 0
+        ? `\n\nLive web context for this question (cite the most relevant link by name when you use it):\n` +
+          grounding.sources
+            .map((s) => `- ${s.name ?? "source"}: ${s.url ?? ""}`)
+            .join("\n") +
+          (grounding.answer ? `\nBackground: ${grounding.answer}` : "")
+        : "";
     const completion = await client.chat.completions.create({
       model: CHAT_MODEL,
       messages: [
@@ -316,12 +338,16 @@ export const aiHelpStep = action({
             `IMPORTANT: always reply in the SAME language the person writes in (English, Spanish, Chinese, French at least). ` +
             `You are an AI, say so if asked — never pretend to be human. If the person needs medical, legal, or ` +
             `mental-health help or is in crisis, do not attempt it: point them to https://findahelpline.com and stop. ` +
-            `Keep every reply under 120 words unless a teaching explanation genuinely needs more.`,
+            `Keep every reply under 120 words unless a teaching explanation genuinely needs more.` +
+            webContext,
         },
         ...history,
       ],
       temperature: 0.7,
     });
-    return completion.choices[0].message.content ?? "";
+    return {
+      reply: completion.choices[0].message.content ?? "",
+      sources: grounding.sources,
+    };
   },
 });
