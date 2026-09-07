@@ -14,6 +14,7 @@ export const create = mutation({
         content: v.string(),
       })
     ),
+    preferredTime: v.string(),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("requests", {
@@ -24,6 +25,7 @@ export const create = mutation({
       needSummary: "",
       embedding: [],
       status: "searching",
+      preferredTime: args.preferredTime,
       createdAt: Date.now(),
     });
 

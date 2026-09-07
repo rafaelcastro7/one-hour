@@ -56,6 +56,9 @@ export default defineSchema({
     // Requester-side duration: how long they need (15/30/60). Requesters may
     // ask for something quick; the 1-hour minimum applies to volunteers only.
     expectedMinutes: v.optional(v.number()),
+    // Scheduling: when they want the session (free choice from set slots).
+    // Shown on the match so both sides coordinate; rooms generate on confirm.
+    preferredTime: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])

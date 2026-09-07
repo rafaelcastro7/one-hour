@@ -4,6 +4,7 @@ import { useAction } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { PipelineTips } from "@/components/PipelineTips";
+import { AriaAvatar } from "@/components/AriaAvatar";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -62,7 +63,10 @@ export default function AiHelpPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-6 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">Chatting with Aria (AI)</h1>
+      <div className="flex items-center gap-3">
+        <AriaAvatar size={52} />
+        <h1 className="text-2xl font-bold">Chatting with Aria (AI)</h1>
+      </div>
       <div className="flex flex-col gap-3 w-full max-w-lg max-h-96 overflow-y-auto" aria-live="polite">
         {messages.map((m, i) => (
           <div

@@ -19,6 +19,7 @@ export default function RequestPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [category, setCategory] = useState<"tech" | "languages">("tech");
+  const [preferredTime, setPreferredTime] = useState("Right now");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -31,7 +32,7 @@ export default function RequestPage() {
     setSubmitError(null);
     try {
       const rawNeed = history.filter((m) => m.role === "user").map((m) => m.content).join(" ");
-      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history });
+      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime });
       router.push(`/status/${id}`);
     } catch {
       setSubmitError("Couldn't create your request. Check your connection and try again.");
@@ -110,6 +111,27 @@ export default function RequestPage() {
             <option value="tech">Tech</option>
             <option value="languages">Languages</option>
           </select>
+          <fieldset>
+            <legend className="text-sm text-neutral-400 mb-2">When do you want the session?</legend>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Preferred time">
+              {["Right now", "Today evening", "Tomorrow", "Weekend"].map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  role="radio"
+                  aria-checked={preferredTime === slot}
+                  onClick={() => setPreferredTime(slot)}
+                  className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                    preferredTime === slot
+                      ? "bg-amber-400 text-neutral-900 font-semibold border-amber-400"
+                      : "border-neutral-700 text-neutral-300 hover:border-amber-400"
+                  }`}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+          </fieldset>
           {submitError && (
             <p className="text-sm text-red-300" role="alert">{submitError}</p>
           )}

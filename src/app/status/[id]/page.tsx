@@ -6,6 +6,7 @@ import { use, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PipelineTips } from "@/components/PipelineTips";
+import { AriaAvatar } from "@/components/AriaAvatar";
 
 export default function StatusPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -103,13 +104,24 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
         <>
           <p className="text-lg">We found a match!</p>
           <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-6 max-w-sm text-left space-y-2">
-            <p className="font-semibold">{request.volunteer.name}</p>
+            <div className="flex items-center gap-3">
+              {request.volunteer.isVirtual && <AriaAvatar size={44} />}
+              <div>
+                <p className="font-semibold">{request.volunteer.name}</p>
+                {request.volunteer.isVirtual && (
+                  <p className="text-xs text-amber-400 font-medium">AI volunteer — connects instantly</p>
+                )}
+              </div>
+            </div>
             <p className="text-sm text-neutral-400">{request.volunteer.profileSummary}</p>
             {typeof request.expectedMinutes === "number" && (
               <p className="text-xs text-amber-400">
                 They need about {request.expectedMinutes} minutes
                 {request.expectedMinutes < 60 ? " — fits inside your hour" : ""}
               </p>
+            )}
+            {request.preferredTime && (
+              <p className="text-xs text-neutral-500">Session wanted: {request.preferredTime}</p>
             )}
             {request.matchReasoning && (
               <p className="text-sm text-neutral-300 mt-2">{request.matchReasoning}</p>
