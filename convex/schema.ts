@@ -53,6 +53,9 @@ export default defineSchema({
     matchScore: v.optional(v.number()), // cosine similarity of the chosen match
     matchReasoning: v.optional(v.string()), // why the LLM chose this match
     roomUrl: v.optional(v.string()), // Daily.co link generated on confirmation
+    // Requester-side duration: how long they need (15/30/60). Requesters may
+    // ask for something quick; the 1-hour minimum applies to volunteers only.
+    expectedMinutes: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])

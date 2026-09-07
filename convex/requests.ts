@@ -78,6 +78,7 @@ export const updateStatus = internalMutation({
     matchReasoning: v.optional(v.string()),
     needSummary: v.optional(v.string()),
     embedding: v.optional(v.array(v.number())),
+    expectedMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { requestId, ...patch } = args;

@@ -144,7 +144,9 @@ export const runIntakeStep = action({
           `with: category (MUST be exactly "tech" or "languages", lowercase, no other value), ` +
           `summary (one-sentence summary, in English, ` +
           `of what they need and why -- rich in specific detail for semantic matching, not ` +
-          `generic), urgency ("low", "medium", "high"), language (preferred language).`
+          `generic), urgency ("low", "medium", "high"), language (preferred language), ` +
+          `expectedMinutes (best guess of how long they need: 15, 30 or 60 -- default 60 ` +
+          `unless they clearly ask for something quick).`
         : `Analyze this conversation where someone offers volunteer help and return a JSON ` +
           `with: category (MUST be exactly "tech" or "languages", lowercase, no other value), ` +
           `summary (one-sentence summary, in English, ` +

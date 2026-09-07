@@ -54,7 +54,7 @@ async function runMatchPipeline(
   history: Array<{ role: "user" | "assistant"; content: string }>
 ) {
   {
-    const profile: { category: string; summary: string } = await withRetry(
+    const profile: { category: string; summary: string; expectedMinutes?: number } = await withRetry(
       "closeProfile",
       () => ctx.runAction(internal.nebius.closeProfile, { history, mode: "need" })
     );
@@ -68,6 +68,10 @@ async function runMatchPipeline(
       status: "searching",
       needSummary: profile.summary,
       embedding,
+      expectedMinutes:
+        profile.expectedMinutes === 15 || profile.expectedMinutes === 30
+          ? profile.expectedMinutes
+          : 60,
     });
 
     const volunteers: Array<{
