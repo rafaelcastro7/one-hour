@@ -18,8 +18,11 @@ export default function OfferPage() {
   const [history, setHistory] = useState<Message[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [linkedin, setLinkedin] = useState("");
+  const [linkedinUser, setLinkedinUser] = useState("");
   const [category, setCategory] = useState<"tech" | "languages">("tech");
+  const linkedinUrl = `https://www.linkedin.com/in/${linkedinUser.trim()}`;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const linkedinValid = /^[A-Za-z0-9-]{3,100}$/.test(linkedinUser.trim());
   const [answers, setAnswers] = useState<Array<number | null>>([null, null, null]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export default function OfferPage() {
         category,
         rawOffer,
         history,
-        linkedinUrl: linkedin.trim(),
+        linkedinUrl,
         quizScore: score,
         skillLevel: levelFor(score),
       });
@@ -151,17 +154,19 @@ export default function OfferPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <label htmlFor="offer-linkedin" className="sr-only">LinkedIn profile URL</label>
-          <input
-            id="offer-linkedin"
-            className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
-            placeholder="LinkedIn profile URL (https://linkedin.com/in/…)"
-            type="url"
-            value={linkedin}
-            onChange={(e) => setLinkedin(e.target.value)}
-          />
-          {!linkedinValid && linkedin.length > 0 && (
-            <p className="text-xs text-red-300">Enter a valid LinkedIn profile URL.</p>
+          <label htmlFor="offer-linkedin" className="sr-only">LinkedIn username</label>
+          <div className="flex items-center rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm focus-within:border-amber-400">
+            <span className="text-neutral-500 shrink-0">linkedin.com/in/</span>
+            <input
+              id="offer-linkedin"
+              className="flex-1 bg-transparent outline-none px-1"
+              placeholder="your-username"
+              value={linkedinUser}
+              onChange={(e) => setLinkedinUser(e.target.value.replace(/\s/g, ""))}
+            />
+          </div>
+          {!linkedinValid && linkedinUser.length > 0 && (
+            <p className="text-xs text-red-300">Use your LinkedIn username (letters, numbers, dashes).</p>
           )}
           <label htmlFor="offer-category" className="sr-only">Category</label>
           <select
