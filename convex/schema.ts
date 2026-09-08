@@ -36,11 +36,19 @@ export default defineSchema({
     ratingSum: v.optional(v.number()),
     ratingCount: v.optional(v.number()),
     // Reliability: how many times a confirmed session died on their side.
+    // At 3 strikes the volunteer is auto-paused (active=false) — the teeth
+    // ADPList's no-show flow famously lacks.
     noShowCount: v.optional(v.number()),
+    // Public track record: finished sessions + latest written review,
+    // denormalized here so the directory renders without extra queries.
+    completedCount: v.optional(v.number()),
+    latestReview: v.optional(v.string()),
+    latestReviewer: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
-    .index("by_active", ["active"]),
+    .index("by_active", ["active"])
+    .index("by_email", ["email"]),
 
   // Help requests (people asking)
   requests: defineTable({
@@ -78,6 +86,13 @@ export default defineSchema({
     // side can only write its own field once (guarded in submitRating).
     requesterRating: v.optional(v.number()),
     volunteerRating: v.optional(v.number()),
+    // Written review (≤280 chars) attached to the requester's rating.
+    // Mirrored onto the volunteer as latestReview for the directory.
+    requesterReview: v.optional(v.string()),
+    // Session template picked at intake ("resume-review", ...) and the
+    // volunteer a recurring user asked for again (matching boost).
+    template: v.optional(v.string()),
+    preferredVolunteerId: v.optional(v.id("volunteers")),
     // Detected user language (en/es/fr/zh...). Matching data stays in
     // English, but everything the user reads renders in this language.
     language: v.optional(v.string()),
@@ -91,7 +106,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_status", ["status"])
-    .index("by_category", ["category"]),
+    .index("by_category", ["category"])
+    .index("by_email", ["email"]),
 
   // Evaluation cases (to measure matching accuracy, a Nebius requirement)
   evalCases: defineTable({
@@ -121,4 +137,37 @@ export default defineSchema({
     email: v.string(),
     balance: v.number(),
   }).index("by_email", ["email"]),
+
+  // Group sessions: a volunteer hosts one room for up to `capacity`
+  // requesters on a shared template (ADPList-style: resume review, mock
+  // interview). Members join by email (no auth); the room generates once
+  // the host confirms the group.
+  groups: defineTable({
+    volunteerId: v.id("volunteers"),
+    title: v.string(),
+    category: v.union(v.literal("tech"), v.literal("languages")),
+    template: v.string(),
+    slots: v.array(v.string()),
+    capacity: v.number(),
+    members: v.array(v.object({ name: v.string(), email: v.string() })),
+    status: v.union(
+      v.literal("open"),
+      v.literal("ready"),
+      v.literal("closed")
+    ),
+    roomUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_category", ["category"]),
+
+  // Communities: TimeRepublik-style themed groups. Members join by email;
+  // the directory of volunteers can be filtered by community later.
+  communities: defineTable({
+    name: v.string(),
+    description: v.string(),
+    category: v.optional(v.union(v.literal("tech"), v.literal("languages"))),
+    memberEmails: v.array(v.string()),
+    createdAt: v.number(),
+  }).index("by_name", ["name"]),
 });

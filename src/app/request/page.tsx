@@ -2,11 +2,13 @@
 
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { IntakeChat } from "@/components/IntakeChat";
 import { SafetyScreen } from "@/components/SafetyScreen";
 import { requestSlotOptions, userTimeZone } from "@/components/availability";
+import { TEMPLATES, TemplateId } from "@/components/templates";
 import { useLanguage } from "@/app/language-context";
 import { useMemo } from "react";
 
@@ -31,6 +33,15 @@ export default function RequestPage() {
   const preferredTz = useMemo(() => userTimeZone(), []);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<TemplateId>("custom");
+  const [preferredVolunteerId, setPreferredVolunteerId] = useState<string | null>(null);
+
+  // Recurring booking: /request?volunteer=<id> boosts that volunteer in
+  // scoring (requested-again bonus). Read client-side to stay prerender-safe.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("volunteer");
+    if (id) setPreferredVolunteerId(id);
+  }, []);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const canSubmit = name.trim().length > 0 && emailValid && !submitting;
@@ -41,7 +52,19 @@ export default function RequestPage() {
     setSubmitError(null);
     try {
       const rawNeed = history.filter((m) => m.role === "user").map((m) => m.content).join(" ");
-      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime, preferredSlots: [...preferredSlots], preferredTz, language });
+      const id = await createRequest({
+        name: name.trim(),
+        email: email.trim(),
+        category,
+        rawNeed,
+        history,
+        preferredTime,
+        preferredSlots: [...preferredSlots],
+        preferredTz,
+        language,
+        template: templateId === "custom" ? undefined : templateId,
+        preferredVolunteerId: (preferredVolunteerId as Id<"volunteers"> | null) ?? undefined,
+      });
       router.push(`/status/${id}`);
     } catch (e) {
       // Backend errors arrive in English (single source of truth server-side);
@@ -131,6 +154,33 @@ export default function RequestPage() {
             <option value="tech">Tech</option>
             <option value="languages">{es ? "Idiomas" : "Languages"}</option>
           </select>
+          <fieldset>
+            <legend className="text-sm text-neutral-400 mb-2">{es ? "¿Qué formato quieres?" : "What format?"}</legend>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Template">
+              {TEMPLATES.filter((t) => t.category === "either" || t.category === category).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={templateId === t.id}
+                  title={es ? t.blurbEs : t.blurb}
+                  onClick={() => setTemplateId(t.id)}
+                  className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                    templateId === t.id
+                      ? "bg-amber-400 text-neutral-900 font-semibold border-amber-400"
+                      : "border-neutral-700 text-neutral-300 hover:border-amber-400"
+                  }`}
+                >
+                  {es ? t.labelEs : t.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          {preferredVolunteerId && (
+            <p className="text-xs text-amber-400" role="status">
+              {es ? "Reservando de nuevo con tu voluntario anterior — tendrá prioridad en el matching." : "Booking again with your previous volunteer — they'll be prioritized in matching."}
+            </p>
+          )}
           <fieldset>
             <legend className="text-sm text-neutral-400 mb-2">{es ? "¿Cuándo quieres la sesión?" : "When do you want the session?"} <span className="text-neutral-600">({preferredTz})</span></legend>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Preferred time">

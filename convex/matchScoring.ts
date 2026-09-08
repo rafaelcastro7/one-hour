@@ -142,6 +142,7 @@ export function avgRatingOf(vol: { ratingSum?: number; ratingCount?: number }): 
 }
 
 export type ScoredVolunteer = {
+  id?: string;
   embedding: number[];
   profileSummary: string;
   matchCount?: number;
@@ -152,6 +153,10 @@ export type ScoredVolunteer = {
   noShowCount?: number;
 };
 
+// Asked-for-again bonus: a recurring user who names their volunteer gets
+// them heavily weighted. Trust already earned beats similarity guesses.
+const REQUESTED_BONUS = 0.1;
+
 /**
  * Single source of truth for retrieval scoring. Production matching, the eval
  * runner, the red-team harness and the bias audit all use this, so a defence
@@ -161,7 +166,8 @@ export function scoreCandidate(
   needEmbedding: number[],
   needSummary: string,
   vol: ScoredVolunteer,
-  reqSlots?: string[]
+  reqSlots?: string[],
+  preferredVolunteerId?: string
 ): number {
   const base = penalisedScore(
     cosineSimilarity(needEmbedding, vol.embedding),
@@ -173,6 +179,7 @@ export function scoreCandidate(
     keywordOverlapBonus(needSummary, vol.profileSummary) -
     (vol.isVirtual ? VIRTUAL_PENALTY : 0) +
     availabilityBonus(reqSlots, vol.slots) +
-    reputationBonus(avgRatingOf(vol), vol.noShowCount ?? 0)
+    reputationBonus(avgRatingOf(vol), vol.noShowCount ?? 0) +
+    (preferredVolunteerId && vol.id === preferredVolunteerId ? REQUESTED_BONUS : 0)
   );
 }

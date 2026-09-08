@@ -65,10 +65,28 @@ export default function VolunteersPage() {
               </div>
             </div>
             <p className="text-sm text-neutral-400 line-clamp-3">{v.profileSummary}</p>
-            {typeof v.ratingCount === "number" && v.ratingCount > 0 && (
-              <p className="text-xs text-amber-400">
-                ★ {((v.ratingSum ?? 0) / v.ratingCount).toFixed(1)} · {v.ratingCount} session{v.ratingCount > 1 ? "s" : ""}
-              </p>
+            <div className="flex flex-wrap items-center gap-x-2 text-xs">
+              {typeof v.ratingCount === "number" && v.ratingCount > 0 && (
+                <span className="text-amber-400">
+                  ★ {((v.ratingSum ?? 0) / v.ratingCount).toFixed(1)} · {v.ratingCount} session{v.ratingCount > 1 ? "s" : ""}
+                </span>
+              )}
+              {typeof v.completedCount === "number" && v.completedCount > 0 && (
+                <span className="text-neutral-500">
+                  {es ? `${v.completedCount} completadas` : `${v.completedCount} completed`}
+                </span>
+              )}
+              {typeof v.noShowCount === "number" && v.noShowCount > 0 && (
+                <span className="text-red-300 font-medium">
+                  {es ? `· ${v.noShowCount} ausencia${v.noShowCount > 1 ? "s" : ""}` : `· ${v.noShowCount} no-show${v.noShowCount > 1 ? "s" : ""}`}
+                </span>
+              )}
+            </div>
+            {v.latestReview && (
+              <blockquote className="text-xs text-neutral-400 italic border-l-2 border-amber-400/50 pl-2">
+                &ldquo;{v.latestReview}&rdquo;
+                {v.latestReviewer ? <span className="not-italic"> — {v.latestReviewer}</span> : null}
+              </blockquote>
             )}
             {v.slots && v.slots.length > 0 && (
               <p className="text-xs text-neutral-500">

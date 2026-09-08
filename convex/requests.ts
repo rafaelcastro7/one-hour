@@ -18,6 +18,8 @@ export const create = mutation({
     preferredSlots: v.array(v.string()),
     preferredTz: v.string(),
     language: v.optional(v.string()),
+    template: v.optional(v.string()),
+    preferredVolunteerId: v.optional(v.id("volunteers")),
   },
   handler: async (ctx, args) => {
     // Time economy: every request costs 1 credit; new emails start with 1
@@ -32,7 +34,7 @@ export const create = mutation({
     try {
       id = await ctx.db.insert("requests", {
         name: args.name,
-        email: args.email,
+        email: args.email.toLowerCase().trim(),
         category: args.category,
         rawNeed: args.rawNeed,
         history: args.history,
@@ -43,6 +45,8 @@ export const create = mutation({
         preferredSlots: args.preferredSlots,
         preferredTz: args.preferredTz,
         language: args.language ?? "en",
+        template: args.template,
+        preferredVolunteerId: args.preferredVolunteerId,
         createdAt: Date.now(),
       });
 
@@ -186,6 +190,72 @@ export const setRoomUrl = internalMutation({
   },
 });
 
+// Sessions portal: every request one email address made, newest first,
+// with the matched volunteer attached. The requester's home base.
+export const listByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const rows = await ctx.db
+      .query("requests")
+      .withIndex("by_email", (q) => q.eq("email", email.toLowerCase()))
+      .collect();
+    rows.sort((a, b) => b.createdAt - a.createdAt);
+    const out = [];
+    for (const req of rows) {
+      const volunteer = req.matchedVolunteerId
+        ? await ctx.db.get(req.matchedVolunteerId)
+        : null;
+      out.push({
+        ...req,
+        volunteer: volunteer
+          ? { _id: volunteer._id, name: volunteer.name, isVirtual: volunteer.isVirtual }
+          : null,
+      });
+    }
+    return out;
+  },
+});
+
+// Volunteer side of the portal: every request currently assigned to the
+// volunteer with this email. Lets volunteers see who is coming, complete
+// sessions and spot no-shows without needing the requester's link.
+export const listByVolunteer = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const vol = await ctx.db
+      .query("volunteers")
+      .withIndex("by_email", (q) => q.eq("email", email.toLowerCase()))
+      .unique();
+    if (!vol) return [];
+    const rows = await ctx.db
+      .query("requests")
+      .withIndex("by_status", (q) =>
+        q.eq("status", "confirmed" as const)
+      )
+      .collect();
+    const mine = rows.filter((r) => r.matchedVolunteerId === vol._id);
+    const matched = await ctx.db
+      .query("requests")
+      .withIndex("by_status", (q) =>
+        q.eq("status", "match_found" as const)
+      )
+      .collect();
+    const all = [...mine, ...matched.filter((r) => r.matchedVolunteerId === vol._id)];
+    all.sort((a, b) => b.createdAt - a.createdAt);
+    return all.map((r) => ({
+      _id: r._id,
+      name: r.name,
+      email: r.email,
+      status: r.status,
+      preferredTime: r.preferredTime,
+      preferredTz: r.preferredTz,
+      roomUrl: r.roomUrl,
+      requesterRating: r.requesterRating,
+      createdAt: r.createdAt,
+    }));
+  },
+});
+
 // Post-session rating, one per side (1-5). Sessions must be COMPLETED:
 // rating a merely confirmed session scores a call that may never happen.
 // Each side writes its own field once (guarded below). A requester rating
@@ -195,10 +265,14 @@ export const submitRating = mutation({
     requestId: v.id("requests"),
     side: v.union(v.literal("requester"), v.literal("volunteer")),
     score: v.number(),
+    review: v.optional(v.string()),
   },
-  handler: async (ctx, { requestId, side, score }) => {
+  handler: async (ctx, { requestId, side, score, review }) => {
     if (!Number.isInteger(score) || score < 1 || score > 5) {
       throw new Error("Score must be an integer from 1 to 5.");
+    }
+    if (review !== undefined && review.length > 280) {
+      throw new Error("Review must be 280 characters or less.");
     }
     const req = await ctx.db.get(requestId);
     if (!req) throw new Error("Request not found");
@@ -207,13 +281,19 @@ export const submitRating = mutation({
     }
     if (side === "requester") {
       if (req.requesterRating !== undefined) throw new Error("Already rated.");
-      await ctx.db.patch(requestId, { requesterRating: score });
+      await ctx.db.patch(requestId, {
+        requesterRating: score,
+        ...(review && review.trim() ? { requesterReview: review.trim().slice(0, 280) } : {}),
+      });
       if (req.matchedVolunteerId) {
         const vol = await ctx.db.get(req.matchedVolunteerId);
         if (vol) {
           await ctx.db.patch(vol._id, {
             ratingSum: (vol.ratingSum ?? 0) + score,
             ratingCount: (vol.ratingCount ?? 0) + 1,
+            ...(review && review.trim()
+              ? { latestReview: review.trim().slice(0, 280), latestReviewer: req.name }
+              : {}),
           });
         }
       }
@@ -239,6 +319,7 @@ export const completeSession = mutation({
       const vol = await ctx.db.get(req.matchedVolunteerId);
       if (vol && !vol.isVirtual) {
         await ctx.runMutation(internal.credits.earn, { email: vol.email, amount: 1 });
+        await ctx.db.patch(vol._id, { completedCount: (vol.completedCount ?? 0) + 1 });
       }
     }
   },
@@ -274,7 +355,13 @@ export const reportNoShow = mutation({
     if (req.matchedVolunteerId) {
       const vol = await ctx.db.get(req.matchedVolunteerId);
       if (vol) {
-        await ctx.db.patch(vol._id, { noShowCount: (vol.noShowCount ?? 0) + 1 });
+        const strikes = (vol.noShowCount ?? 0) + 1;
+        // Three strikes: auto-pause. The volunteer disappears from matching
+        // and the directory until a human re-approves them.
+        await ctx.db.patch(vol._id, {
+          noShowCount: strikes,
+          ...(strikes >= 3 ? { active: false } : {}),
+        });
       }
     }
     const history = (req.history ?? []).map((m) => ({

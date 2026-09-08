@@ -198,8 +198,7 @@ describe("reputationBonus", () => {
   });
 });
 
-describe("scoreCandidate reputation wiring", () => {
-  const emb = [1, 0];
+describe("scoreCandidate reputation wiring", () => {  const emb = [1, 0];
   const profile = "Backend engineer, Postgres and databases.";
 
   test("a proven volunteer outranks an unrated twin", () => {
@@ -226,10 +225,31 @@ describe("scoreCandidate reputation wiring", () => {
 
 describe("cosineSimilarity guards", () => {
   test("mismatched dimensions score 0 instead of NaN", () => {
-    expect(cosineSimilarity([1, 2, 3], [1, 2])).toBe(0);
+    expect(cosineSimilarity([1, 2], [1, 2, 3])).toBe(0);
   });
 
   test("empty vectors score 0", () => {
     expect(cosineSimilarity([], [])).toBe(0);
+  });
+});
+
+describe("requested-again bonus", () => {
+  const emb = [1, 0];
+  const profile = "Backend engineer, Postgres and databases.";
+
+  test("the asked-for volunteer wins over an equal stranger", () => {
+    const stranger = scoreCandidate(emb, profile, { id: "a", embedding: emb, profileSummary: profile });
+    const asked = scoreCandidate(emb, profile, { id: "b", embedding: emb, profileSummary: profile }, undefined, "b");
+    expect(asked).toBeGreaterThan(stranger);
+  });
+
+  test("no bonus without a preference, or for someone else", () => {
+    const base = scoreCandidate(emb, profile, { id: "a", embedding: emb, profileSummary: profile });
+    expect(
+      scoreCandidate(emb, profile, { id: "a", embedding: emb, profileSummary: profile }, undefined, "b")
+    ).toBeCloseTo(base, 5);
+    expect(
+      scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile }, undefined, "b")
+    ).toBeCloseTo(base, 5);
   });
 });

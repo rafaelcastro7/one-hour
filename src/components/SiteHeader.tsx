@@ -4,8 +4,8 @@ import Link from "next/link";
 import { LanguageSelectorButton, useLanguage } from "@/app/language-context";
 
 const NAV: Record<"en" | "es", Record<string, string>> = {
-  en: { about: "About", volunteers: "Volunteers", judges: "Judges", evidence: "Evidence", getHelp: "Get help" },
-  es: { about: "Nosotros", volunteers: "Voluntarios", judges: "Jurado", evidence: "Evidencia", getHelp: "Pedir ayuda" },
+  en: { about: "About", volunteers: "Volunteers", groups: "Groups", communities: "Communities", sessions: "Sessions", judges: "Judges", evidence: "Evidence", getHelp: "Get help" },
+  es: { about: "Nosotros", volunteers: "Voluntarios", groups: "Grupos", communities: "Comunidades", sessions: "Sesiones", judges: "Jurado", evidence: "Evidencia", getHelp: "Pedir ayuda" },
 };
 
 export function SiteHeader() {
@@ -17,12 +17,21 @@ export function SiteHeader() {
         <Link href="/" className="text-lg font-bold tracking-tight text-neutral-50">
           1hour
         </Link>
-        <div className="flex items-center gap-5 text-sm text-neutral-400">
+        <div className="flex items-center gap-4 text-sm text-neutral-400">
           <Link href="/about" className="hover:text-amber-400 transition-colors">
             {t.about}
           </Link>
           <Link href="/volunteers" className="hover:text-amber-400 transition-colors">
             {t.volunteers}
+          </Link>
+          <Link href="/groups" className="hover:text-amber-400 transition-colors">
+            {t.groups}
+          </Link>
+          <Link href="/communities" className="hover:text-amber-400 transition-colors">
+            {t.communities}
+          </Link>
+          <Link href="/sessions" className="hover:text-amber-400 transition-colors">
+            {t.sessions}
           </Link>
           <Link href="/jury" className="hover:text-amber-400 transition-colors">
             {t.judges}

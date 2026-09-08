@@ -10,9 +10,11 @@
 
 import type * as adversarialTests from "../adversarialTests.js";
 import type * as biasAudit from "../biasAudit.js";
+import type * as communities from "../communities.js";
 import type * as credits from "../credits.js";
 import type * as evalRunner from "../evalRunner.js";
 import type * as evaluation from "../evaluation.js";
+import type * as groups from "../groups.js";
 import type * as linkedin from "../linkedin.js";
 import type * as linkup from "../linkup.js";
 import type * as matchScoring from "../matchScoring.js";
@@ -35,9 +37,11 @@ import type {
 declare const fullApi: ApiFromModules<{
   adversarialTests: typeof adversarialTests;
   biasAudit: typeof biasAudit;
+  communities: typeof communities;
   credits: typeof credits;
   evalRunner: typeof evalRunner;
   evaluation: typeof evaluation;
+  groups: typeof groups;
   linkedin: typeof linkedin;
   linkup: typeof linkup;
   matchScoring: typeof matchScoring;

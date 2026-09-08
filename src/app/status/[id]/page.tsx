@@ -23,6 +23,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [myScore, setMyScore] = useState(0);
+  const [myReview, setMyReview] = useState("");
 
   async function runAction(
     fn: () => Promise<unknown>,
@@ -158,6 +159,11 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
                 {request.preferredTz ? ` (${request.preferredTz})` : ""}
               </p>
             )}
+            {request.template && (
+              <p className="text-xs text-neutral-500">
+                {request.language === "es" ? "Formato: " : "Format: "}{request.template.replace(/-/g, " ")}
+              </p>
+            )}
             {request.volunteer.availability && !request.volunteer.isVirtual && (
               <p className="text-xs text-neutral-500">
                 {request.language === "es"
@@ -283,6 +289,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
                         requestId: id as Id<"requests">,
                         side: "requester",
                         score: myScore,
+                        review: myReview.trim() ? myReview.trim() : undefined,
                       }),
                     request.language === "es" ? "Gracias — tu calificación ayuda a futuros matches." : "Thanks — your rating helps future matches.",
                     request.language === "es" ? "No se pudo guardar tu calificación." : "Couldn't save your rating."
@@ -293,9 +300,27 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
               >
                 {request.language === "es" ? "Enviar calificación" : "Send rating"}
               </button>
+              <label htmlFor="review-text" className="sr-only">{request.language === "es" ? "Reseña escrita (opcional)" : "Written review (optional)"}</label>
+              <textarea
+                id="review-text"
+                rows={2}
+                maxLength={280}
+                value={myReview}
+                onChange={(e) => setMyReview(e.target.value)}
+                placeholder={request.language === "es" ? "Cuéntalo en palabras (opcional, 280)…" : "Say it in words (optional, 280)…"}
+                className="w-full rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
+              />
             </div>
           ) : (
             <p className="text-sm text-neutral-500">{request.language === "es" ? `Calificaste esta sesión ${request.requesterRating}/5. ¡Gracias!` : `You rated this session ${request.requesterRating}/5. Thanks!`}</p>
+          )}
+          {request.matchedVolunteerId && !request.volunteer?.isVirtual && (
+            <Link
+              href={`/request?volunteer=${request.matchedVolunteerId}`}
+              className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3"
+            >
+              {request.language === "es" ? `Reservar de nuevo con ${request.volunteer?.name.split(" ")[0] ?? "tu voluntario"}` : `Book again with ${request.volunteer?.name.split(" ")[0] ?? "your volunteer"}`}
+            </Link>
           )}
           <Link
             href="/request"

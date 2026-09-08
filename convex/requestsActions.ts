@@ -114,10 +114,15 @@ async function runMatchPipeline(
     });
 
     // Scheduling overlap: the requester's slots (empty = ASAP, no constraint).
-    const reqDoc: { preferredSlots?: string[]; preferredTime?: string; language?: string } | null =
-      await ctx.runQuery(api.requests.get, { requestId });
+    const reqDoc: {
+      preferredSlots?: string[];
+      preferredTime?: string;
+      language?: string;
+      preferredVolunteerId?: string;
+    } | null = await ctx.runQuery(api.requests.get, { requestId });
     const reqSlots = reqDoc?.preferredSlots ?? [];
     const reqLanguage = reqDoc?.language ?? detectedLanguage ?? "en";
+    const preferredId = reqDoc?.preferredVolunteerId;
 
     const volunteers: Array<{
       _id: string;
@@ -151,7 +156,7 @@ async function runMatchPipeline(
       .map((v) => ({
         id: v._id,
         summary: v.profileSummary,
-        score: scoreCandidate(embedding, profile.summary, v, reqSlots),
+        score: scoreCandidate(embedding, profile.summary, { ...v, id: v._id }, reqSlots, preferredId),
         availability: v.availability ?? v.slots?.join(", ") ?? "",
         isVirtual: v.isVirtual,
       }))

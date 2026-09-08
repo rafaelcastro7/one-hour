@@ -40,7 +40,7 @@ export const register = mutation({
     }
     const id = await ctx.db.insert("volunteers", {
       name: args.name,
-      email: args.email,
+      email: args.email.toLowerCase().trim(),
       category: args.category,
       rawOffer: args.rawOffer,
       profileSummary: "",
