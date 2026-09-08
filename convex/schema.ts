@@ -31,6 +31,12 @@ export default defineSchema({
     // Structured weekly availability ("mon-evening", ...). Free-text
     // `availability` stays for humans; these ids are what matching verifies.
     slots: v.optional(v.array(v.string())),
+    // Reputation: sum/count of 1-5 ratings from requesters (avg = sum/count).
+    // Feeds the match card and a small matching bonus for proven volunteers.
+    ratingSum: v.optional(v.number()),
+    ratingCount: v.optional(v.number()),
+    // Reliability: how many times a confirmed session died on their side.
+    noShowCount: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_category", ["category"])
@@ -67,6 +73,21 @@ export default defineSchema({
     // possible", no time constraint applied.
     preferredSlots: v.optional(v.array(v.string())),
     preferredTz: v.optional(v.string()),
+    // Post-session ratings (1-5), one per side. The requester rates the
+    // volunteer and vice versa, from the shared status link. No auth: each
+    // side can only write its own field once (guarded in submitRating).
+    requesterRating: v.optional(v.number()),
+    volunteerRating: v.optional(v.number()),
+    // Detected user language (en/es/fr/zh...). Matching data stays in
+    // English, but everything the user reads renders in this language.
+    language: v.optional(v.string()),
+    // True for AI virtual volunteers: skip Daily.co video room, use Aria AI helper instead.
+    isVirtual: v.optional(v.boolean()),
+    // Stored intake history so a no-show requeue can re-run matching
+    // without asking the person to repeat the conversation.
+    history: v.optional(
+      v.array(v.object({ role: v.string(), content: v.string() }))
+    ),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])
@@ -92,4 +113,12 @@ export default defineSchema({
     estimatedTokens: v.optional(v.number()),
     lastRunAt: v.optional(v.number()),
   }),
+
+  // Time credits ledger (1 hour given = 1 credit earned, 1 credit = 1 hour
+  // claimed). Keyed by email since there is no auth; balances move only
+  // inside the request lifecycle (charge on create, earn on complete).
+  balances: defineTable({
+    email: v.string(),
+    balance: v.number(),
+  }).index("by_email", ["email"]),
 });

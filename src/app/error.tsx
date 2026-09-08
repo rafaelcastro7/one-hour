@@ -1,6 +1,13 @@
 "use client";
 
-export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+import { useEffect } from "react";
+
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // Surface the digest in the console: without this, production failures are
+  // invisible — the UI shows "try again" and the cause evaporates.
+  useEffect(() => {
+    console.error("Route error", error.digest ?? "(no digest)", error.message);
+  }, [error]);
   return (
     <main className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-16 bg-neutral-950 text-neutral-50 text-center">
       <p className="text-lg font-semibold">Something went wrong.</p>

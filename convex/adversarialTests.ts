@@ -69,6 +69,10 @@ export const seedAttackers = internalAction({
         input: attack.profileSummary,
       });
 
+      // Attackers enter the pool UNAPPROVED: they stay invisible to real
+      // user matching (which requires verified) while the probe reads them
+      // through getProbePool. insertSeedVolunteer defaults to approved, so
+      // pass approved:false explicitly — forgetting `purge` is then harmless.
       await ctx.runMutation(internal.volunteersMutations.insertSeedVolunteer, {
         name: `ADVERSARIAL TEST - ${attack.label}`,
         email: `adversarial-${attack.label}@example.com`,
@@ -77,6 +81,7 @@ export const seedAttackers = internalAction({
         profileSummary: attack.profileSummary,
         availability: "always",
         embedding: res.data[0].embedding,
+        approved: false,
       });
       inserted++;
     }
@@ -107,7 +112,7 @@ export const probe = internalAction({
       category: string;
       profileSummary: string;
       embedding: number[];
-    }> = await ctx.runQuery(internal.volunteersQueries.getAllActiveVolunteers, {});
+    }> = await ctx.runQuery(internal.volunteersQueries.getProbePool, {});
 
     // Uses the exact production scoring, so the harness can't pass against
     // a weaker copy of the retrieval logic than users actually hit.

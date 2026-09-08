@@ -17,26 +17,43 @@ export const create = mutation({
     preferredTime: v.string(),
     preferredSlots: v.array(v.string()),
     preferredTz: v.string(),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("requests", {
-      name: args.name,
-      email: args.email,
-      category: args.category,
-      rawNeed: args.rawNeed,
-      needSummary: "",
-      embedding: [],
-      status: "searching",
-      preferredTime: args.preferredTime,
-      preferredSlots: args.preferredSlots,
-      preferredTz: args.preferredTz,
-      createdAt: Date.now(),
-    });
+    // Time economy: every request costs 1 credit; new emails start with 1
+    // welcome credit. The error message tells broke users how to earn more.
+    // Charge BEFORE the insert (so a broke user never creates a request the
+    // pipeline can't serve), but refund if the insert/schedule fails — a
+    // lost credit with no request is the worst outcome of this ordering.
+    await ctx.runMutation(internal.credits.ensureAndGrantWelcome, { email: args.email });
+    await ctx.runMutation(internal.credits.charge, { email: args.email, amount: 1 });
 
-    await ctx.scheduler.runAfter(0, internal.requestsActions.buildAndMatch, {
-      requestId: id,
-      history: args.history,
-    });
+    let id;
+    try {
+      id = await ctx.db.insert("requests", {
+        name: args.name,
+        email: args.email,
+        category: args.category,
+        rawNeed: args.rawNeed,
+        history: args.history,
+        needSummary: "",
+        embedding: [],
+        status: "searching",
+        preferredTime: args.preferredTime,
+        preferredSlots: args.preferredSlots,
+        preferredTz: args.preferredTz,
+        language: args.language ?? "en",
+        createdAt: Date.now(),
+      });
+
+      await ctx.scheduler.runAfter(0, internal.requestsActions.buildAndMatch, {
+        requestId: id,
+        history: args.history,
+      });
+    } catch (err) {
+      await ctx.runMutation(internal.credits.earn, { email: args.email, amount: 1 });
+      throw err;
+    }
 
     return id;
   },
@@ -44,6 +61,11 @@ export const create = mutation({
 
 // Live status of a request -- this is what the frontend subscribes to
 // in order to see Convex's reactivity (searching -> match found).
+// The volunteer is projected to an explicit public shape: embeddings are
+// matching-internal data, and email/rawOffer/linkedinUrl/quizScore are the
+// volunteer's private data — a requester has no business reading them.
+// Explicit fields (not a dynamic pick) so the generated client type carries
+// every property the status page renders.
 export const get = query({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
@@ -52,7 +74,24 @@ export const get = query({
     const volunteer = req.matchedVolunteerId
       ? await ctx.db.get(req.matchedVolunteerId)
       : null;
-    return { ...req, volunteer };
+    if (!volunteer) return { ...req, volunteer };
+    return {
+      ...req,
+      volunteer: {
+        _id: volunteer._id,
+        name: volunteer.name,
+        category: volunteer.category,
+        profileSummary: volunteer.profileSummary,
+        availability: volunteer.availability,
+        slots: volunteer.slots,
+        skillLevel: volunteer.skillLevel,
+        languages: volunteer.languages,
+        isVirtual: volunteer.isVirtual,
+        ratingSum: volunteer.ratingSum,
+        ratingCount: volunteer.ratingCount,
+        noShowCount: volunteer.noShowCount,
+      },
+    };
   },
 });
 
@@ -63,8 +102,54 @@ export const confirmMatch = mutation({
     if (!req) throw new Error("Request not found");
     if (req.roomUrl) return;
     if (req.status !== "match_found") return;
+    if (!req.matchedVolunteerId) throw new Error("No volunteer attached to this match.");
+    // The volunteer may have been deactivated (or their intake invalidated)
+    // between match_found and confirm. Creating a room for a dead match is
+    // worse than re-searching: verify membership before committing.
+    const vol = await ctx.db.get(req.matchedVolunteerId);
+    if (!vol || !vol.active || !vol.verified || vol.embedding.length === 0) {
+      const history = (req.history ?? []).map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+      if (history.length === 0) {
+        // No stored conversation: re-running the pipeline on an empty
+        // transcript would match garbage. Say so instead of matching blind.
+        await ctx.db.patch(requestId, {
+          status: "failed",
+          matchedVolunteerId: undefined,
+          matchScore: undefined,
+          matchReasoning:
+            "Your match became unavailable and the original conversation is gone. Please make a new request.",
+          roomUrl: undefined,
+          isVirtual: undefined,
+        });
+        return;
+      }
+      await ctx.db.patch(requestId, {
+        status: "searching",
+        matchedVolunteerId: undefined,
+        matchScore: undefined,
+        matchReasoning: "Your match became unavailable. Finding someone else.",
+        roomUrl: undefined,
+        isVirtual: undefined,
+      });
+      await ctx.scheduler.runAfter(0, internal.requestsActions.buildAndMatch, {
+        requestId,
+        history,
+      });
+      return;
+    }
     await ctx.db.patch(requestId, { status: "confirmed" });
-    await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
+    // For virtual volunteers, set roomUrl to Aria helper link immediately.
+    if (req.isVirtual) {
+      await ctx.runMutation(internal.requests.setRoomUrl, {
+        requestId,
+        roomUrl: "/ai-help",
+      });
+    } else {
+      await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
+    }
   },
 });
 
@@ -85,6 +170,8 @@ export const updateStatus = internalMutation({
     needSummary: v.optional(v.string()),
     embedding: v.optional(v.array(v.number())),
     expectedMinutes: v.optional(v.number()),
+    isVirtual: v.optional(v.boolean()),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { requestId, ...patch } = args;
@@ -96,5 +183,133 @@ export const setRoomUrl = internalMutation({
   args: { requestId: v.id("requests"), roomUrl: v.string() },
   handler: async (ctx, { requestId, roomUrl }) => {
     await ctx.db.patch(requestId, { roomUrl });
+  },
+});
+
+// Post-session rating, one per side (1-5). Sessions must be COMPLETED:
+// rating a merely confirmed session scores a call that may never happen.
+// Each side writes its own field once (guarded below). A requester rating
+// also feeds the volunteer's public average (ratingSum/ratingCount).
+export const submitRating = mutation({
+  args: {
+    requestId: v.id("requests"),
+    side: v.union(v.literal("requester"), v.literal("volunteer")),
+    score: v.number(),
+  },
+  handler: async (ctx, { requestId, side, score }) => {
+    if (!Number.isInteger(score) || score < 1 || score > 5) {
+      throw new Error("Score must be an integer from 1 to 5.");
+    }
+    const req = await ctx.db.get(requestId);
+    if (!req) throw new Error("Request not found");
+    if (req.status !== "completed") {
+      throw new Error("You can only rate a completed session. Mark it completed first.");
+    }
+    if (side === "requester") {
+      if (req.requesterRating !== undefined) throw new Error("Already rated.");
+      await ctx.db.patch(requestId, { requesterRating: score });
+      if (req.matchedVolunteerId) {
+        const vol = await ctx.db.get(req.matchedVolunteerId);
+        if (vol) {
+          await ctx.db.patch(vol._id, {
+            ratingSum: (vol.ratingSum ?? 0) + score,
+            ratingCount: (vol.ratingCount ?? 0) + 1,
+          });
+        }
+      }
+    } else {
+      if (req.volunteerRating !== undefined) throw new Error("Already rated.");
+      await ctx.db.patch(requestId, { volunteerRating: score });
+    }
+  },
+});
+
+// Marks a confirmed session as done. The volunteer earns 1 time credit.
+// Idempotent: completing twice does not pay twice. Virtual (AI) volunteers
+// never earn: their address is synthetic and paying it pollutes the ledger.
+export const completeSession = mutation({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req) throw new Error("Request not found");
+    if (req.status === "completed") return;
+    if (req.status !== "confirmed") throw new Error("Only confirmed sessions can complete.");
+    await ctx.db.patch(requestId, { status: "completed" });
+    if (req.matchedVolunteerId && !req.isVirtual) {
+      const vol = await ctx.db.get(req.matchedVolunteerId);
+      if (vol && !vol.isVirtual) {
+        await ctx.runMutation(internal.credits.earn, { email: vol.email, amount: 1 });
+      }
+    }
+  },
+});
+
+// No-show handling (ADPList's #1 complaint, unanswered there):
+// - Volunteer didn't show (reporter "requester"): volunteer's noShowCount
+//   grows (visible reliability + scoring penalty), match cleared, pipeline
+//   re-runs from the stored history -- the requester never repeats themselves.
+// - Requester didn't show (reporter "volunteer"): session completes and the
+//   waiting volunteer still earns their credit.
+export const reportNoShow = mutation({
+  args: {
+    requestId: v.id("requests"),
+    reporter: v.union(v.literal("requester"), v.literal("volunteer")),
+  },
+  handler: async (ctx, { requestId, reporter }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req) throw new Error("Request not found");
+    if (req.status !== "confirmed" && req.status !== "match_found") {
+      throw new Error("Only active matches can report a no-show.");
+    }
+    if (reporter === "volunteer") {
+      await ctx.db.patch(requestId, { status: "completed" });
+      if (req.matchedVolunteerId && !req.isVirtual) {
+        const vol = await ctx.db.get(req.matchedVolunteerId);
+        if (vol && !vol.isVirtual) {
+          await ctx.runMutation(internal.credits.earn, { email: vol.email, amount: 1 });
+        }
+      }
+      return;
+    }
+    if (req.matchedVolunteerId) {
+      const vol = await ctx.db.get(req.matchedVolunteerId);
+      if (vol) {
+        await ctx.db.patch(vol._id, { noShowCount: (vol.noShowCount ?? 0) + 1 });
+      }
+    }
+    const history = (req.history ?? []).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+    if (history.length === 0) {
+      await ctx.db.patch(requestId, {
+        status: "failed",
+        matchedVolunteerId: undefined,
+        matchScore: undefined,
+        matchReasoning:
+          "The volunteer didn't show up and the original conversation is gone. Please make a new request.",
+        roomUrl: undefined,
+        isVirtual: undefined,
+        requesterRating: undefined,
+        volunteerRating: undefined,
+      });
+      return;
+    }
+    await ctx.db.patch(requestId, {
+      status: "searching",
+      matchedVolunteerId: undefined,
+      matchScore: undefined,
+      matchReasoning: "Previous volunteer didn't show up. Finding someone else.",
+      roomUrl: undefined,
+      // A requeued search is a fresh match: stale virtual flag and any
+      // ratings from the dead session must not leak into the next one.
+      isVirtual: undefined,
+      requesterRating: undefined,
+      volunteerRating: undefined,
+    });
+    await ctx.scheduler.runAfter(0, internal.requestsActions.buildAndMatch, {
+      requestId,
+      history,
+    });
   },
 });

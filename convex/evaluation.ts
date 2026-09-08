@@ -5,7 +5,9 @@ import { internal } from "./_generated/api";
 // Casos de evaluación pre-cargados para medir precisión del matching --
 // requisito explícito del track Applied AI de Nebius: "measure at least
 // one of: accuracy, time to complete the task, or cost per task."
-export const addEvalCase = mutation({
+// Internal-only: these mutate the jury's labelled set, so no public client
+// may insert or rewrite cases. Seeding goes through seedEvalCases.
+export const addEvalCase = internalMutation({
   args: {
     needText: v.string(),
     expectedCategory: v.string(),
@@ -16,7 +18,7 @@ export const addEvalCase = mutation({
   },
 });
 
-export const recordResult = mutation({
+export const recordResult = internalMutation({
   args: {
     evalCaseId: v.id("evalCases"),
     actualMatchDescription: v.string(),

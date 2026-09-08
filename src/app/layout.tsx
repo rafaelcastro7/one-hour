@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ConvexClientProvider from "./ConvexClientProvider";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import AppShell from "./AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://1hour.vercel.app"),
+  metadataBase: new URL("https://onehour-vn98.onrender.com"),
   title: {
     default: "1hour — give an hour, get an hour",
     template: "%s · 1hour",
@@ -42,11 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-50">
-        <ConvexClientProvider>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </ConvexClientProvider>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

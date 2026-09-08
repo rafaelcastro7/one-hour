@@ -17,9 +17,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/nock": "^10.0.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "msw": "^2.15.0",
+    "nock": "^14.0.17",
     "playwright-core": "^1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5",

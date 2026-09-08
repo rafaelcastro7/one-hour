@@ -54,7 +54,7 @@ async function runMatchPipeline(
   history: Array<{ role: "user" | "assistant"; content: string }>
 ) {
   {
-    const profile: { category: string; summary: string; expectedMinutes?: number } = await withRetry(
+    const profile: { category: string; summary: string; expectedMinutes?: number; language?: string } = await withRetry(
       "closeProfile",
       () => ctx.runAction(internal.nebius.closeProfile, { history, mode: "need" })
     );
@@ -62,6 +62,14 @@ async function runMatchPipeline(
     const embedding: number[] = await withRetry("embed", () =>
       ctx.runAction(internal.nebius.embed, { text: profile.summary })
     );
+
+    // Persist the detected conversation language: the LLM wrote the summary
+    // in English for matching, but the user reads everything in their own
+    // language (status page, reasoning, tips).
+    const detectedLanguage =
+      typeof profile.language === "string" && profile.language.trim().length > 0
+        ? profile.language.trim().slice(0, 8).toLowerCase()
+        : undefined;
 
     await ctx.runMutation(internal.requests.updateStatus, {
       requestId,
@@ -72,12 +80,14 @@ async function runMatchPipeline(
         profile.expectedMinutes === 15 || profile.expectedMinutes === 30
           ? profile.expectedMinutes
           : 60,
+      ...(detectedLanguage ? { language: detectedLanguage } : {}),
     });
 
     // Scheduling overlap: the requester's slots (empty = ASAP, no constraint).
-    const reqDoc: { preferredSlots?: string[]; preferredTime?: string } | null =
+    const reqDoc: { preferredSlots?: string[]; preferredTime?: string; language?: string } | null =
       await ctx.runQuery(api.requests.get, { requestId });
     const reqSlots = reqDoc?.preferredSlots ?? [];
+    const reqLanguage = reqDoc?.language ?? detectedLanguage ?? "en";
 
     const volunteers: Array<{
       _id: string;
@@ -112,6 +122,7 @@ async function runMatchPipeline(
         summary: v.profileSummary,
         score: scoreCandidate(embedding, profile.summary, v, reqSlots),
         availability: v.availability ?? v.slots?.join(", ") ?? "",
+        isVirtual: v.isVirtual,
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
@@ -123,6 +134,7 @@ async function runMatchPipeline(
           needSummary: profile.summary,
           candidates: scored,
           preferredTime: reqDoc?.preferredTime ?? undefined,
+          language: reqLanguage,
         })
     );
 
@@ -143,6 +155,7 @@ async function runMatchPipeline(
       matchedVolunteerId: decision.chosenId as any,
       matchScore: chosen?.score ?? 0,
       matchReasoning: decision.reasoning,
+      isVirtual: chosen?.isVirtual ?? false,
     });
 
     // Congestion accounting: the chosen volunteer's load grows, so future
@@ -157,12 +170,31 @@ async function runMatchPipeline(
 export const createRoom = internalAction({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
-    const roomName = `one-hour-${requestId.slice(0, 8)}-${Date.now()}`;
+    // Request shape now includes isVirtual (added to schema above).
+    const reqDoc = await ctx.runQuery(api.requests.get, { requestId });
+    const isVirtual = reqDoc?.isVirtual ?? false;
+
+    // If the volunteer is virtual (AI), we don't need a Daily.co room.
+    // Instead, make the Aria AI helper instantly available for text chat
+    // during the session. This guarantees the user always gets help.
+    if (isVirtual) {
+      await ctx.runMutation(internal.requests.setRoomUrl, {
+        requestId,
+        roomUrl: "/ai-help", // link to Aria instant helper
+      });
+      await ctx.runMutation(internal.requests.updateStatus, {
+        requestId,
+        status: "confirmed",
+      });
+      return;
+    }
 
     // Both sides have already agreed to meet by this point, so a silent
     // failure here is the worst one in the product: the status page would
     // sit on "generating your room" forever with no way forward. Retry, and
     // if it still fails say so instead of hanging.
+    const roomName = `one-hour-${requestId.slice(0, 8)}-${Date.now()}`;
+
     const createDailyRoom = async () => {
       const res = await fetch("https://api.daily.co/v1/rooms", {
         method: "POST",
@@ -193,9 +225,12 @@ export const createRoom = internalAction({
       await ctx.runMutation(internal.requests.setRoomUrl, { requestId, roomUrl: url });
     } catch (err) {
       console.error("createRoom failed", err);
+      // Back to match_found, NOT failed: the match is still good, only the
+      // room is missing, so confirming again must be allowed to retry.
+      // Parking here in "failed" would break the promise in the message.
       await ctx.runMutation(internal.requests.updateStatus, {
         requestId,
-        status: "failed",
+        status: "match_found",
         matchReasoning:
           "We found your match, but couldn't create the video room. Please try confirming again.",
       });

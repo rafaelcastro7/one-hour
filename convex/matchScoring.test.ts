@@ -1,11 +1,13 @@
 import { describe, expect, test } from "vitest";
 import {
+  avgRatingOf,
   cosineSimilarity,
   topicBreadth,
   penalisedScore,
   loadPenalty,
   keywordOverlapBonus,
   availabilityBonus,
+  reputationBonus,
   scoreCandidate,
 } from "./matchScoring";
 
@@ -155,5 +157,79 @@ describe("availabilityBonus", () => {
 
   test("volunteers without slots get no bonus", () => {
     expect(availabilityBonus(["tue-evening"], [])).toBe(0);
+  });
+});
+
+describe("avgRatingOf", () => {
+  test("no ratings means null (no bonus, no penalty)", () => {
+    expect(avgRatingOf({})).toBeNull();
+    expect(avgRatingOf({ ratingCount: 0, ratingSum: 5 })).toBeNull();
+  });
+
+  test("computes the mean", () => {
+    expect(avgRatingOf({ ratingSum: 9, ratingCount: 2 })).toBeCloseTo(4.5);
+  });
+
+  test("a count without a sum degrades to 0, never NaN", () => {
+    expect(avgRatingOf({ ratingCount: 2 })).toBe(0);
+  });
+});
+
+describe("reputationBonus", () => {
+  test("elite volunteers get the full lift", () => {
+    expect(reputationBonus(4.8, 0)).toBeCloseTo(0.03);
+    expect(reputationBonus(4.5, 0)).toBeCloseTo(0.03);
+  });
+
+  test("good-but-not-elite gets the small lift", () => {
+    expect(reputationBonus(4.2, 0)).toBeCloseTo(0.01);
+  });
+
+  test("below 4.0 gets nothing", () => {
+    expect(reputationBonus(3.9, 0)).toBe(0);
+    expect(reputationBonus(null, 0)).toBe(0);
+  });
+
+  test("no-shows demote, and stack against ratings", () => {
+    expect(reputationBonus(null, 1)).toBeCloseTo(-0.02);
+    expect(reputationBonus(null, 2)).toBeCloseTo(-0.05);
+    expect(reputationBonus(null, 9)).toBeCloseTo(-0.05);
+    expect(reputationBonus(5, 2)).toBeCloseTo(-0.02);
+  });
+});
+
+describe("scoreCandidate reputation wiring", () => {
+  const emb = [1, 0];
+  const profile = "Backend engineer, Postgres and databases.";
+
+  test("a proven volunteer outranks an unrated twin", () => {
+    const plain = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile });
+    const proven = scoreCandidate(emb, profile, {
+      embedding: emb,
+      profileSummary: profile,
+      ratingSum: 15,
+      ratingCount: 3,
+    });
+    expect(proven).toBeGreaterThan(plain);
+  });
+
+  test("a serial no-show sinks below an unrated twin", () => {
+    const plain = scoreCandidate(emb, profile, { embedding: emb, profileSummary: profile });
+    const flaky = scoreCandidate(emb, profile, {
+      embedding: emb,
+      profileSummary: profile,
+      noShowCount: 3,
+    });
+    expect(plain).toBeGreaterThan(flaky);
+  });
+});
+
+describe("cosineSimilarity guards", () => {
+  test("mismatched dimensions score 0 instead of NaN", () => {
+    expect(cosineSimilarity([1, 2, 3], [1, 2])).toBe(0);
+  });
+
+  test("empty vectors score 0", () => {
+    expect(cosineSimilarity([], [])).toBe(0);
   });
 });

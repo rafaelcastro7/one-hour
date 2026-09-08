@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import { IntakeChat } from "@/components/IntakeChat";
 import { SafetyScreen } from "@/components/SafetyScreen";
 import { requestSlotOptions, userTimeZone } from "@/components/availability";
+import { useLanguage } from "@/app/language-context";
 import { useMemo } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -14,6 +15,8 @@ type Message = { role: "user" | "assistant"; content: string };
 export default function RequestPage() {
   const createRequest = useMutation(api.requests.create);
   const router = useRouter();
+  const { language } = useLanguage();
+  const es = language === "es";
 
   const [step, setStep] = useState<"safety" | "chat" | "form">("safety");
   const [refused, setRefused] = useState(false);
@@ -21,7 +24,7 @@ export default function RequestPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [category, setCategory] = useState<"tech" | "languages">("tech");
-  const slotOptions = useMemo(() => requestSlotOptions(), []);
+  const slotOptions = useMemo(() => requestSlotOptions(new Date(), es ? "es" : "en"), [es]);
   const [slotIndex, setSlotIndex] = useState(0);
   const preferredTime = slotOptions[slotIndex].label;
   const preferredSlots = slotOptions[slotIndex].slots;
@@ -38,10 +41,21 @@ export default function RequestPage() {
     setSubmitError(null);
     try {
       const rawNeed = history.filter((m) => m.role === "user").map((m) => m.content).join(" ");
-      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime, preferredSlots: [...preferredSlots], preferredTz });
+      const id = await createRequest({ name: name.trim(), email: email.trim(), category, rawNeed, history, preferredTime, preferredSlots: [...preferredSlots], preferredTz, language });
       router.push(`/status/${id}`);
-    } catch {
-      setSubmitError("Couldn't create your request. Check your connection and try again.");
+    } catch (e) {
+      // Backend errors arrive in English (single source of truth server-side);
+      // map the known cases to the UI language instead of leaking them raw.
+      const msg = e instanceof Error ? e.message : "";
+      if (es) {
+        setSubmitError(
+          msg.includes("Not enough time credits")
+            ? "Sin créditos de tiempo. Regala una hora como voluntario para ganar uno, e inténtalo de nuevo."
+            : "No pudimos crear tu solicitud. Revisa tu conexión e inténtalo de nuevo."
+        );
+      } else {
+        setSubmitError(msg || "Couldn't create your request. Check your connection and try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -49,8 +63,8 @@ export default function RequestPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-8 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">Tell us what you need</h1>
-      <Stepper steps={["Safety", "Chat", "Details"]} current={step} />
+      <h1 className="text-2xl font-bold">{es ? "Cuéntanos qué necesitas" : "Tell us what you need"}</h1>
+      <Stepper steps={[es ? "Aviso" : "Safety", "Chat", es ? "Datos" : "Details"]} current={step} />
 
       {step === "safety" && <SafetyScreen onContinue={() => setStep("chat")} />}
 
@@ -88,21 +102,21 @@ export default function RequestPage() {
       {step === "form" && (
         <div className="flex flex-col gap-4 w-full max-w-sm">
           <p className="text-sm text-neutral-400">
-            Got it. One last step to find your match:
+            {es ? "Listo. Un último paso para encontrar tu match:" : "Got it. One last step to find your match:"}
           </p>
-          <label htmlFor="req-name" className="sr-only">Your name</label>
+          <label htmlFor="req-name" className="sr-only">{es ? "Tu nombre" : "Your name"}</label>
           <input
             id="req-name"
             className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
-            placeholder="Your name"
+            placeholder={es ? "Tu nombre" : "Your name"}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <label htmlFor="req-email" className="sr-only">Your email</label>
+          <label htmlFor="req-email" className="sr-only">{es ? "Tu correo" : "Your email"}</label>
           <input
             id="req-email"
             className="rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm"
-            placeholder="Your email"
+            placeholder={es ? "Tu correo" : "Your email"}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -115,10 +129,10 @@ export default function RequestPage() {
             onChange={(e) => setCategory(e.target.value as "tech" | "languages")}
           >
             <option value="tech">Tech</option>
-            <option value="languages">Languages</option>
+            <option value="languages">{es ? "Idiomas" : "Languages"}</option>
           </select>
           <fieldset>
-            <legend className="text-sm text-neutral-400 mb-2">When do you want the session? <span className="text-neutral-600">({preferredTz})</span></legend>
+            <legend className="text-sm text-neutral-400 mb-2">{es ? "¿Cuándo quieres la sesión?" : "When do you want the session?"} <span className="text-neutral-600">({preferredTz})</span></legend>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Preferred time">
               {slotOptions.map((opt, i) => (
                 <button
@@ -147,14 +161,14 @@ export default function RequestPage() {
               disabled={submitting}
               className="rounded-lg border border-neutral-700 px-4 py-2.5 text-sm disabled:opacity-50 hover:border-amber-400 transition-colors"
             >
-              Back
+              {es ? "Atrás" : "Back"}
             </button>
             <button
               onClick={submit}
               disabled={!canSubmit}
               className="flex-1 rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-50"
             >
-              {submitting ? "Finding your match..." : "Find my match"}
+              {submitting ? (es ? "Buscando tu match..." : "Finding your match...") : (es ? "Buscar mi match" : "Find my match")}
             </button>
           </div>
         </div>

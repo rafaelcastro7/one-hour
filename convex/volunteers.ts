@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { normalizeLinkedIn } from "./linkedin";
 
 // Registers a volunteer with their profile still open (called from the
 // frontend right after the intake conversation ends).
@@ -26,8 +27,13 @@ export const register = mutation({
     slots: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!/^https:\/\/(www\.)?linkedin\.com\/.+/.test(args.linkedinUrl.trim())) {
-      throw new Error("A valid LinkedIn profile URL is required to register.");
+    // Accept a bare username ("rafa") or a full URL the user pasted.
+    // normalizeLinkedIn is unit-tested in convex/linkedin.test.ts.
+    const linkedinUrl = normalizeLinkedIn(args.linkedinUrl);
+    if (!linkedinUrl) {
+      throw new Error(
+        "A valid LinkedIn profile is required: use your username (letters, numbers, dashes) or paste your linkedin.com/in/ link."
+      );
     }
     if (args.slots.length === 0) {
       throw new Error("Pick at least one availability slot.");
@@ -42,7 +48,7 @@ export const register = mutation({
       availability: "",
       verified: false, // manual human gate before activation
       active: false,
-      linkedinUrl: args.linkedinUrl.trim(),
+      linkedinUrl,
       quizScore: args.quizScore,
       skillLevel: args.skillLevel,
       slots: args.slots,
@@ -125,7 +131,9 @@ export const listActive = query({
       .query("volunteers")
       .withIndex("by_active", (q) => q.eq("active", true))
       .collect();
-    const withEmbeddings = all.filter((v) => v.embedding.length > 0);
+    // Public directory shows the same membership as matching: verified,
+    // active, embedded. Pending rows stay invisible until a human approves.
+    const withEmbeddings = all.filter((v) => v.verified && v.active && v.embedding.length > 0);
     return category ? withEmbeddings.filter((v) => v.category === category) : withEmbeddings;
   },
 });

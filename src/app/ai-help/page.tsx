@@ -5,15 +5,18 @@ import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { PipelineTips } from "@/components/PipelineTips";
 import { AriaAvatar } from "@/components/AriaAvatar";
+import { useLanguage } from "@/app/language-context";
 
 type Source = { url: string | null; name: string | null };
 type Message = { role: "user" | "assistant"; content: string; sources?: Source[] };
 
 export default function AiHelpPage() {
   const aiHelpStep = useAction(api.nebius.aiHelpStep);
+  const { language } = useLanguage();
+  const es = language === "es";
   const [category, setCategory] = useState<"tech" | "languages" | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I'm Aria, the AI volunteer — instant help while no human is around. What do you need?" },
+    { role: "assistant", content: es ? "¡Hola! Soy Aria, la voluntaria IA — ayuda instantánea mientras no hay humanos. ¿Qué necesitas?" : "Hi! I'm Aria, the AI volunteer — instant help while no human is around. What do you need?" },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +36,7 @@ export default function AiHelpPage() {
         { role: "assistant", content: res.reply, sources: res.sources },
       ]);
     } catch {
-      setError("Aria didn't respond in time — try sending your message again.");
+      setError(es ? "Aria no respondió a tiempo — intenta enviar tu mensaje de nuevo." : "Aria didn't respond in time — try sending your message again.");
     } finally {
       setLoading(false);
     }
@@ -42,10 +45,11 @@ export default function AiHelpPage() {
   if (!category) {
     return (
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 gap-6 bg-neutral-950 text-neutral-50 text-center">
-        <h1 className="text-2xl font-bold">Instant AI help</h1>
+        <h1 className="text-2xl font-bold">{es ? "Ayuda instantánea con IA" : "Instant AI help"}</h1>
         <p className="text-sm text-neutral-400 max-w-sm">
-          No human available right now? Aria answers instantly. Pick a topic —
-          a human volunteer is still the better choice for anything sensitive.
+          {es
+            ? "¿Sin humanos disponibles? Aria responde al instante. Elige un tema — un voluntario humano sigue siendo mejor para lo sensible."
+            : "No human available right now? Aria answers instantly. Pick a topic — a human volunteer is still the better choice for anything sensitive."}
         </p>
         <div className="flex gap-4">
           <button
@@ -58,7 +62,7 @@ export default function AiHelpPage() {
             onClick={() => setCategory("languages")}
             className="rounded-xl border-2 border-neutral-700 px-6 py-3 font-semibold hover:border-amber-400 transition-colors"
           >
-            Languages
+            {es ? "Idiomas" : "Languages"}
           </button>
         </div>
       </main>
@@ -69,7 +73,7 @@ export default function AiHelpPage() {
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-6 bg-neutral-950 text-neutral-50">
       <div className="flex items-center gap-3">
         <AriaAvatar size={52} />
-        <h1 className="text-2xl font-bold">Chatting with Aria (AI)</h1>
+        <h1 className="text-2xl font-bold">{es ? "Chateando con Aria (IA)" : "Chatting with Aria (AI)"}</h1>
       </div>
       <div className="flex flex-col gap-3 w-full max-w-lg max-h-96 overflow-y-auto" aria-live="polite">
         {messages.map((m, i) => (
@@ -107,7 +111,7 @@ export default function AiHelpPage() {
         ))}
         {loading && (
           <div className="self-start px-2">
-            <PipelineTips mode="ai" messageCount={messages.length} />
+            <PipelineTips mode="ai" messageCount={messages.length} lang={es ? "es" : "en"} />
           </div>
         )}
         {error && (
@@ -115,11 +119,11 @@ export default function AiHelpPage() {
         )}
       </div>
       <div className="flex gap-2 w-full max-w-lg">
-        <label htmlFor="ai-input" className="sr-only">Type your message</label>
+        <label htmlFor="ai-input" className="sr-only">{es ? "Escribe tu mensaje" : "Type your message"}</label>
         <input
           id="ai-input"
           className="flex-1 rounded-lg bg-neutral-900 border border-neutral-700 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
-          placeholder="Type here..."
+          placeholder={es ? "Escribe aquí..." : "Type here..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
@@ -130,7 +134,7 @@ export default function AiHelpPage() {
           disabled={loading}
           className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-4 py-2.5 text-sm disabled:opacity-50"
         >
-          Send
+          {es ? "Enviar" : "Send"}
         </button>
       </div>
     </main>

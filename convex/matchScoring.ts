@@ -122,12 +122,34 @@ export function availabilityBonus(reqSlots: string[] | undefined, volSlots: stri
   return reqSlots.some((s) => set.has(s)) ? AVAILABILITY_BONUS : 0;
 }
 
+// Reputation: proven volunteers (high avg rating) get a small lift;
+// unreliable ones (no-shows) get demoted. Ratings and attendance are the
+// two signals every leading platform runs on -- this is our version.
+export function reputationBonus(avgRating: number | null, noShowCount: number): number {
+  let bonus = 0;
+  if (avgRating !== null) {
+    if (avgRating >= 4.5) bonus += 0.03;
+    else if (avgRating >= 4.0) bonus += 0.01;
+  }
+  if (noShowCount >= 2) bonus -= 0.05;
+  else if (noShowCount >= 1) bonus -= 0.02;
+  return bonus;
+}
+
+export function avgRatingOf(vol: { ratingSum?: number; ratingCount?: number }): number | null {
+  if (!vol.ratingCount) return null;
+  return (vol.ratingSum ?? 0) / vol.ratingCount;
+}
+
 export type ScoredVolunteer = {
   embedding: number[];
   profileSummary: string;
   matchCount?: number;
   isVirtual?: boolean;
   slots?: string[];
+  ratingSum?: number;
+  ratingCount?: number;
+  noShowCount?: number;
 };
 
 /**
@@ -150,6 +172,7 @@ export function scoreCandidate(
     loadPenalty(vol.matchCount ?? 0) +
     keywordOverlapBonus(needSummary, vol.profileSummary) -
     (vol.isVirtual ? VIRTUAL_PENALTY : 0) +
-    availabilityBonus(reqSlots, vol.slots)
+    availabilityBonus(reqSlots, vol.slots) +
+    reputationBonus(avgRatingOf(vol), vol.noShowCount ?? 0)
   );
 }
