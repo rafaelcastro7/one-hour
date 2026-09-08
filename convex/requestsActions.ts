@@ -32,6 +32,7 @@ export const buildAndMatch = internalAction({
         matchReasoning:
           "The matching service didn't respond in time. Your request is saved — please try again.",
       });
+      await refundRequest(ctx, requestId);
     }
   },
 });
@@ -46,6 +47,38 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
     console.warn(`${label} failed, retrying once`, err);
     return await fn();
   }
+}
+
+// Refunds the 1-credit charge when a request dies without ever reaching a
+// session (no volunteers, LLM rejection, pipeline failure). Charging for
+// nothing would punish users for our own empty pool or upstream outage —
+// the credit economy only works if payment maps to service rendered.
+async function refundRequest(ctx: any, requestId: any) {
+  try {
+    const reqDoc: { email?: string } | null = await ctx.runQuery(api.requests.get, {
+      requestId,
+    });
+    if (reqDoc?.email) {
+      await ctx.runMutation(internal.credits.earn, { email: reqDoc.email, amount: 1 });
+    }
+  } catch (err) {
+    console.warn("refundRequest failed", err);
+  }
+}
+
+// Normalizes the free-text language from closeProfile ("Spanish",
+// "español", "en"...) to the ISO codes the frontend renders. Without this,
+// the pipeline stores "english"/"spanish" while the status page checks for
+// "en"/"es" — and Spanish users silently get an English UI.
+function normalizeLanguage(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const t = raw.trim().toLowerCase();
+  if (t.startsWith("spanish") || t.startsWith("español") || t === "es") return "es";
+  if (t.startsWith("english") || t === "en") return "en";
+  if (t.startsWith("french") || t.startsWith("fran") || t === "fr") return "fr";
+  if (t.startsWith("chinese") || t.startsWith("mandarin") || t.includes("中文") || t === "zh") return "zh";
+  if (/^[a-z]{2}$/.test(t)) return t;
+  return undefined;
 }
 
 async function runMatchPipeline(
@@ -65,11 +98,8 @@ async function runMatchPipeline(
 
     // Persist the detected conversation language: the LLM wrote the summary
     // in English for matching, but the user reads everything in their own
-    // language (status page, reasoning, tips).
-    const detectedLanguage =
-      typeof profile.language === "string" && profile.language.trim().length > 0
-        ? profile.language.trim().slice(0, 8).toLowerCase()
-        : undefined;
+    // language (status page, reasoning, tips). Normalized to ISO codes.
+    const detectedLanguage = normalizeLanguage(profile.language);
 
     await ctx.runMutation(internal.requests.updateStatus, {
       requestId,
@@ -107,6 +137,7 @@ async function runMatchPipeline(
         requestId,
         status: "no_match",
       });
+      await refundRequest(ctx, requestId);
       return;
     }
 
@@ -127,16 +158,25 @@ async function runMatchPipeline(
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
-    const decision: { chosenId: string | null; reasoning: string } = await withRetry(
+    const decide = () =>
+      ctx.runAction(internal.nebius.decideMatch, {
+        needSummary: profile.summary,
+        candidates: scored,
+        preferredTime: reqDoc?.preferredTime ?? undefined,
+        language: reqLanguage,
+      });
+    let decision: { chosenId: string | null; reasoning: string } = await withRetry(
       "decideMatch",
-      () =>
-        ctx.runAction(internal.nebius.decideMatch, {
-          needSummary: profile.summary,
-          candidates: scored,
-          preferredTime: reqDoc?.preferredTime ?? undefined,
-          language: reqLanguage,
-        })
+      decide
     );
+    // A null verdict with live candidates is usually model flakiness, not a
+    // real "nobody is suitable" (the adversarial harness proves true
+    // rejections repeat). One retry before giving up — a spurious null
+    // otherwise strands a matchable user in no_match.
+    if (!decision.chosenId && scored.length > 0) {
+      console.warn("decideMatch returned null with candidates, retrying once");
+      decision = await withRetry("decideMatch-retry", decide);
+    }
 
     if (!decision.chosenId) {
       await ctx.runMutation(internal.requests.updateStatus, {
@@ -144,6 +184,7 @@ async function runMatchPipeline(
         status: "no_match",
         matchReasoning: decision.reasoning,
       });
+      await refundRequest(ctx, requestId);
       return;
     }
 
