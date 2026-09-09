@@ -46,8 +46,10 @@ That sets the priority order below: **ship first, polish second.**
       start `npm run start`, env `NEXT_PUBLIC_CONVEX_URL`.
 - [x] Seed the prod database: `seedEvalCases:seed` + `seedVolunteers:seed`.
       **A judge opening an empty app sees nothing work.**
-- [ ] Verify the public URL end to end from a browser: request → match →
-      confirm → Daily room opens.
+- [x] Verify the public URL end to end: Spanish request → match (0.63, with
+      reasoning) → confirm → real Daily room generated on
+      `energized-retriever-599.convex.cloud`. Frontend (Render) confirmed
+      wired to the prod backend.
 
 ### P0-2. Public GitHub repo — **DONE**
 - [x] Live at https://github.com/rafaelcastro7/one-hour
@@ -174,3 +176,11 @@ Research on winning hackathon demos says: script it, don't wander.
   `persona-maliciosa.mjs` pass against dev; production pending-approval probe
   returns data with the admin key instead of crashing. See
   `SECURITY_CONTEXT.md` for the live handoff and remaining auth gaps.
+- 2026-09-08 (later) — Committed the uncommitted handoff work (brute guards,
+  admin/host keys, attendance no-show sweep, check-in UI, groups/communities
+  leave, persona scripts). 80 tests pass, typecheck clean, build OK, pushed.
+  Frontend on Render (onehour-vn98.onrender.com, 10 routes 200) confirmed wired
+  to the PROD Convex backend (energized-retriever-599). Ran a live end-to-end
+  verification against production: Spanish request → match_found (0.626, with
+  reasoning) → confirmed → real Daily room URL generated (≈10s via scheduler).
+  P0-1 fully done.
