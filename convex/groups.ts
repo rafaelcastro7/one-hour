@@ -30,6 +30,9 @@ export const createGroup = mutation({
     if (!vol || !vol.active || !vol.verified || vol.isVirtual) {
       throw new Error("Only active, verified human volunteers can host groups.");
     }
+    if (vol.category !== args.category) {
+      throw new Error("Host category must match the verified volunteer profile.");
+    }
     return await ctx.db.insert("groups", {
       volunteerId: vol._id,
       title: args.title.trim().slice(0, 80),
@@ -51,8 +54,17 @@ export const get = query({
     if (!g) return null;
     const vol = await ctx.db.get(g.volunteerId);
     return {
-      ...g,
+      _id: g._id,
+      title: g.title,
+      category: g.category,
+      template: g.template,
+      slots: g.slots,
+      capacity: g.capacity,
+      status: g.status,
+      roomUrl: g.roomUrl,
+      roomError: g.roomError,
       hostName: vol?.name ?? "Unknown host",
+      memberCount: g.members.length,
       spotsLeft: Math.max(0, g.capacity - g.members.length),
     };
   },
@@ -61,17 +73,28 @@ export const get = query({
 export const listOpen = query({
   args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },
   handler: async (ctx, { category }) => {
-    const rows = await ctx.db
-      .query("groups")
-      .withIndex("by_status", (q) => q.eq("status", "open"))
-      .collect();
+    // Ready groups stay visible because this card is where members receive
+    // the room URL. Previously a full group disappeared before its room did.
+    const [open, ready] = await Promise.all([
+      ctx.db.query("groups").withIndex("by_status", (q) => q.eq("status", "open")).take(50),
+      ctx.db.query("groups").withIndex("by_status", (q) => q.eq("status", "ready")).take(50),
+    ]);
+    const rows = [...open, ...ready];
     const filtered = category ? rows.filter((g) => g.category === category) : rows;
     filtered.sort((a, b) => b.createdAt - a.createdAt);
     const out = [];
     for (const g of filtered) {
       const vol = await ctx.db.get(g.volunteerId);
       out.push({
-        ...g,
+        _id: g._id,
+        title: g.title,
+        category: g.category,
+        template: g.template,
+        slots: g.slots,
+        capacity: g.capacity,
+        status: g.status,
+        roomUrl: g.roomUrl,
+        roomError: g.roomError,
         hostName: vol?.name ?? "Unknown host",
         spotsLeft: Math.max(0, g.capacity - g.members.length),
       });
@@ -172,7 +195,18 @@ function requireHostCode(hostCode: string | undefined) {
 export const setGroupRoomUrl = internalMutation({
   args: { groupId: v.id("groups"), roomUrl: v.string() },
   handler: async (ctx, { groupId, roomUrl }) => {
-    await ctx.db.patch(groupId, { roomUrl });
+    await ctx.db.patch(groupId, { roomUrl, roomError: undefined });
+  },
+});
+
+export const recordGroupRoomFailure = internalMutation({
+  args: { groupId: v.id("groups"), message: v.string() },
+  handler: async (ctx, { groupId, message }) => {
+    const group = await ctx.db.get(groupId);
+    if (!group) return 0;
+    const attempts = (group.roomAttempts ?? 0) + 1;
+    await ctx.db.patch(groupId, { roomAttempts: attempts, roomError: message });
+    return attempts;
   },
 });
 
@@ -202,6 +236,13 @@ export const createGroupRoom = internalAction({
       await ctx.runMutation(internal.groups.setGroupRoomUrl, { groupId, roomUrl: data.url });
     } catch (err) {
       console.error("createGroupRoom failed", err);
+      const attempts = await ctx.runMutation(internal.groups.recordGroupRoomFailure, {
+        groupId,
+        message: "The video provider did not create the room. Retrying automatically.",
+      });
+      if (attempts < 3) {
+        await ctx.scheduler.runAfter(10_000 * attempts, internal.groups.createGroupRoom, { groupId });
+      }
     }
   },
 });

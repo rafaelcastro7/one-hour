@@ -161,6 +161,8 @@ export default defineSchema({
       v.literal("closed")
     ),
     roomUrl: v.optional(v.string()),
+    roomError: v.optional(v.string()),
+    roomAttempts: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_status", ["status"])

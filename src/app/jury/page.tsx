@@ -72,8 +72,8 @@ export default function JuryPage() {
         <h2 className="font-semibold">{es ? "Por qué esto no es un wrapper LLM" : "Why this is not an LLM wrapper"}</h2>
         <p className="text-sm text-neutral-300">
           {es
-            ? "Retrieve-then-rerank: un embedding (Qwen3-Embedding-8B) reduce el pool al top-3 por similitud coseno, luego Llama-3.3-70B (Nebius Token Factory) decide al final y puede contradecir la similitud cuando el texto muestra que el más cercano está mal. La división de modelos es una decisión deliberada de costo/latencia: el grande juzga una vez, el barato escanea a todos."
-            : "Retrieve-then-rerank: an embedding (Qwen3-Embedding-8B) narrows the pool to the top-3 by cosine similarity, then Llama-3.3-70B (Nebius Token Factory) makes the final call and can overrule similarity when the text shows the closest match is wrong. Model split is a deliberate cost/latency decision: the large model judges once, the cheap one scans everyone."}
+            ? "Retrieve-then-rerank: un embedding (Qwen3-Embedding-8B) reduce el pool al top-3 por similitud coseno, luego Qwen3-30B (Nebius Token Factory) decide al final y puede contradecir la similitud cuando el texto muestra que el más cercano está mal. La división de modelos es una decisión deliberada de costo/latencia: un modelo juzga una vez y el embedding escanea a todos."
+            : "Retrieve-then-rerank: an embedding (Qwen3-Embedding-8B) narrows the pool to the top-3 by cosine similarity, then Qwen3-30B (Nebius Token Factory) makes the final call and can overrule similarity when the text shows the closest match is wrong. The split is deliberate: one model judges once while embeddings scan everyone."}
         </p>
       </section>
 

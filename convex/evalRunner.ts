@@ -5,6 +5,7 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { scoreCandidate } from "./matchScoring";
+import { buildDecideMatchMessages } from "./nebius";
 
 // Mirrors convex/nebius.ts's client setup exactly, but kept separate so the
 // eval runner can measure latency/tokens without touching the production
@@ -16,7 +17,8 @@ function getClient() {
   });
 }
 
-const CHAT_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+const CHAT_MODEL =
+  process.env.NEBIUS_CHAT_MODEL ?? "Qwen/Qwen3-30B-A3B-Instruct-2507";
 const EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B";
 
 
@@ -116,33 +118,31 @@ export const runOne = internalAction({
       let llmReasoning = "No volunteers available for this category.";
 
       if (candidates.length > 0) {
-        const candidateList = candidates
-          .map((cd, i) => `${i + 1}. [id=${cd.id}] ${cd.summary} (similarity: ${cd.score.toFixed(3)})`)
-          .join("\n");
+        // Use the production prompt contract here too: opaque labels,
+        // fenced volunteer text and the same exact JSON response shape.
+        // The old eval prompt exposed real IDs and skipped the injection
+        // defenses, so the dashboard was not measuring production behavior.
+        const { labelled, messages } = buildDecideMatchMessages(
+          needSummary,
+          candidates,
+          undefined,
+          "en"
+        );
 
         const decisionCompletion = await client.chat.completions.create({
           model: CHAT_MODEL,
-          messages: [
-            {
-              role: "system",
-              content:
-                `You are the final decision engine of a volunteering matcher. Pick the BEST ` +
-                `real match from the pre-filtered candidates (not necessarily the highest ` +
-                `numeric score). Respond in JSON: {"chosenId": "<id or null>", "reasoning": "<brief>"}.`,
-            },
-            {
-              role: "user",
-              content: `Need: ${profile.summary ?? c.needText}\n\nCandidates:\n${candidateList}`,
-            },
-          ],
+          messages,
           response_format: { type: "json_object" },
           temperature: 0.3,
         });
         estimatedTokens += decisionCompletion.usage?.total_tokens ?? 0;
         const decision = JSON.parse(decisionCompletion.choices[0].message.content ?? "{}");
-        const chosen = candidates.find((cd) => cd.id === decision.chosenId);
+        const picked = labelled.find((candidate) => candidate.label === decision.chosenLabel);
+        const chosen = candidates.find((candidate) => candidate.id === picked?.id);
         chosenByLLM = chosen?.summary ?? "(LLM found no suitable match)";
-        llmReasoning = decision.reasoning ?? "";
+        llmReasoning = typeof decision.reasoning === "string"
+          ? decision.reasoning.trim().slice(0, 300)
+          : "";
       }
 
       const latencyMs = Date.now() - start;

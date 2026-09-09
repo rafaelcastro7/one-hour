@@ -83,7 +83,7 @@ export default function SessionsPage() {
                 className="block bg-neutral-900 border border-neutral-700 rounded-xl p-4 hover:border-amber-400 transition-colors"
               >
                 <div className="flex justify-between items-center gap-2">
-                  <p className="font-medium text-sm truncate">{r.needSummary || r.rawNeed.slice(0, 60)}</p>
+                  <p className="font-medium text-sm truncate">{r.needSummary || r.rawNeedPreview}</p>
                   <span className="text-xs text-amber-400 shrink-0">{STATUS_ES[r.status] ?? r.status}</span>
                 </div>
                 <p className="text-xs text-neutral-500 mt-1">

@@ -17,6 +17,21 @@ export const balanceOf = query({
   },
 });
 
+// Capability-scoped balance lookup for a request status page. This avoids
+// sending the requester's email to the browser just to render their balance.
+export const balanceForRequest = query({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const request = await ctx.db.get(requestId);
+    if (!request) return null;
+    const row = await ctx.db
+      .query("balances")
+      .withIndex("by_email", (q) => q.eq("email", request.email.toLowerCase()))
+      .unique();
+    return row?.balance ?? 0;
+  },
+});
+
 export const getBalance = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {

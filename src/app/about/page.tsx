@@ -22,7 +22,7 @@ export default function AboutPage() {
             <li>{es ? "Describes lo que necesitas u ofreces, en conversación — no un formulario." : "You describe what you need or offer, in conversation — not a form."}</li>
             <li>{es ? "El agente lo cierra en un perfil estructurado (categoría, urgencia, resumen)." : "The agent closes it into a structured profile (category, urgency, summary)."}</li>
             <li>{es ? "Ese resumen se convierte en embedding (Qwen3-Embedding-8B) y se compara por similitud coseno." : "That summary is embedded (Qwen3-Embedding-8B) and compared by cosine similarity."}</li>
-            <li>{es ? "Los 3 mejores van a una segunda llamada LLM (Llama-3.3-70B) que elige y explica por qué." : "Top-3 candidates go to a second LLM call (Llama-3.3-70B) that picks and explains why."}</li>
+            <li>{es ? "Los 3 mejores van a una segunda llamada LLM (Qwen3-30B) que elige y explica por qué." : "Top-3 candidates go to a second LLM call (Qwen3-30B) that picks and explains why."}</li>
             <li>{es ? "Al confirmar, se crea en vivo una sala Daily.co en ambas pantallas — o, para la voluntaria IA, un chat instantáneo con Aria." : "On confirm, a Daily.co video room is created live on both screens — or, for the AI volunteer, an instant Aria chat opens instead."}</li>
           </ol>
         </section>

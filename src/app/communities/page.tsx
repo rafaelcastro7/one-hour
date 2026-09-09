@@ -112,7 +112,7 @@ export default function CommunitiesPage() {
           />
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-lg bg-neutral-950 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
+              className="min-w-0 flex-1 rounded-lg bg-neutral-950 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
               placeholder={es ? "Tu correo" : "Your email"}
               type="email"
               value={email}

@@ -2,7 +2,7 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { scoreCandidate } from "./matchScoring";
 
 // Full pipeline: closes the need profile, generates its embedding, finds
@@ -55,7 +55,7 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
 // the credit economy only works if payment maps to service rendered.
 async function refundRequest(ctx: any, requestId: any) {
   try {
-    const reqDoc: { email?: string } | null = await ctx.runQuery(api.requests.get, {
+    const reqDoc: { email?: string } | null = await ctx.runQuery(internal.requests.getInternal, {
       requestId,
     });
     if (reqDoc?.email) {
@@ -119,7 +119,7 @@ async function runMatchPipeline(
       preferredTime?: string;
       language?: string;
       preferredVolunteerId?: string;
-    } | null = await ctx.runQuery(api.requests.get, { requestId });
+    } | null = await ctx.runQuery(internal.requests.getInternal, { requestId });
     const reqSlots = reqDoc?.preferredSlots ?? [];
     const reqLanguage = reqDoc?.language ?? detectedLanguage ?? "en";
     const preferredId = reqDoc?.preferredVolunteerId;
@@ -217,7 +217,7 @@ export const createRoom = internalAction({
   args: { requestId: v.id("requests") },
   handler: async (ctx, { requestId }) => {
     // Request shape now includes isVirtual (added to schema above).
-    const reqDoc = await ctx.runQuery(api.requests.get, { requestId });
+    const reqDoc = await ctx.runQuery(internal.requests.getInternal, { requestId });
     const isVirtual = reqDoc?.isVirtual ?? false;
 
     // If the volunteer is virtual (AI), we don't need a Daily.co room.
@@ -301,7 +301,7 @@ export const attendanceSweep = internalAction({
       volunteerHereAt?: number;
       matchedVolunteerId?: string;
       email?: string;
-    } | null = await ctx.runQuery(api.requests.get, { requestId });
+    } | null = await ctx.runQuery(internal.requests.getInternal, { requestId });
     if (!req || req.status !== "confirmed") return;
     const hereR = !!req.requesterHereAt;
     const hereV = !!req.volunteerHereAt;

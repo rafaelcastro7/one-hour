@@ -17,7 +17,7 @@ const SPONSORS = [
   "Tip: this frontend rides on Render — sponsor-grade hosting.",
   "Tip: Linkup grounds Aria's answers in live web sources. No hallucinating alone.",
   "Tip: Qwen embeddings read meaning, not keywords. Fancy, right?",
-  "Tip: Llama-3.3-70B makes the final call — the wise elder of this operation.",
+  "Tip: Qwen3-30B makes the final call — fast, measured, and multilingual.",
 ];
 
 // --- FAMILY: how the product works ---
@@ -71,7 +71,7 @@ const PLAYFUL = [
   "Warming up the video room…",
   "Double-checking nobody is a keyword-stuffing robot…",
   "Reticulating splines… just kidding. Matching humans.",
-  "Good matches take ~30 seconds. Great ones too.",
+  "Good matches now take about five seconds in the live evaluation.",
 ];
 
 // --- FAMILIA ES: patrocinadores, con una sonrisa ---
@@ -85,7 +85,7 @@ const SPONSORS_ES = [
   "Dato: este frontend vive en Render — hosting de nivel patrocinador.",
   "Dato: Linkup fundamenta las respuestas de Aria en fuentes web en vivo.",
   "Dato: los embeddings Qwen leen significado, no palabras clave.",
-  "Dato: Llama-3.3-70B toma la decisión final — la sabia mayor de la operación.",
+  "Dato: Qwen3-30B toma la decisión final — rápido, medido y multilingüe.",
 ];
 
 // --- FAMILIA ES: cómo funciona el producto ---
@@ -138,7 +138,7 @@ const PLAYFUL_ES = [
   "Arreando voluntarios (con suavidad)…",
   "Calentando la sala de video…",
   "Verificando que nadie sea un robot rellena-palabras…",
-  "Buenos matches toman ~30 segundos. Los geniales también.",
+  "Los matches toman cerca de cinco segundos en la evaluación en vivo.",
 ];
 
 const BY_MODE: Record<string, string[][]> = {

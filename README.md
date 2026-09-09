@@ -14,7 +14,7 @@ call the moment both sides confirm.
   retrieval → an LLM reranker picks the match and says why → a real video
   room on confirm. Multilingual (answers in the language you write in).
 - **Measured, not claimed.** A live eval (`/eval`) runs a labelled set
-  against the real Nebius pipeline: **10/10 routing, ~34s per match, ~490
+  against the real Nebius pipeline: **10/10 routing, ~5s per match, ~525
   tokens per match**, on production.
 - **We attacked our own system.** A red-team harness found a working prompt
   injection that hijacked matching, and a keyword-stuffing attack that beat
@@ -23,7 +23,7 @@ call the moment both sides confirm.
 - **Honest about limits.** One-sided utility, a measured linguistic-bias
   signal, and a safety model that vets volunteers but not sessions — all
   documented rather than hidden.
-- **Stack.** Next.js · Convex · Nebius Token Factory (Llama-3.3-70B +
+- **Stack.** Next.js · Convex · Nebius Token Factory (Qwen3-30B +
   Qwen3-Embedding-8B) · Daily.co.
 
 ## Why
@@ -67,8 +67,8 @@ the busywork.
 
 `/eval` runs a labeled test set against this exact pipeline on real API
 calls, and reports accuracy, latency and token cost per run. On the
-current demo pool it scores **10/10 on category routing, ~34s median
-end-to-end latency, ~490 tokens per match**.
+current demo pool it scores **10/10 on category routing, ~5s average
+end-to-end latency, ~525 tokens per match**.
 
 **An honest result:** the adversarial case we designed — someone asking for
 a *technical review of French UI copy* rather than conversation practice,
@@ -88,16 +88,15 @@ names the manipulation it rejected. That is a real hard negative — retrieval
 wrong, reranking right — just one produced by the red-team harness rather
 than the labelled eval set.
 
-Latency is the other measured weakness: at ~34s per match this is not yet
-an interactive experience. The status page shows real pipeline stages
-instead of one opaque spinner, but that mitigates the wait rather than
-fixing it.
+Latency used to be the largest experience weakness at ~34s per match. A
+measured model change brought the production evaluation to roughly 5s while
+keeping 10/10 routing and the adversarial checks green.
 
 `/eval` also reports accuracy, average pipeline latency, and average token
 cost across the labeled set on every run. Which model does which job is a
 deliberate cost/latency split, not an arbitrary choice:
-`meta-llama/Llama-3.3-70B-Instruct` handles conversation and the one
-judgment call that actually needs a large model, while the much cheaper
+`Qwen/Qwen3-30B-A3B-Instruct-2507` handles conversation and the final
+judgment call, while the embedding model
 `Qwen/Qwen3-Embedding-8B` handles the initial narrowing pass over the
 whole volunteer pool.
 

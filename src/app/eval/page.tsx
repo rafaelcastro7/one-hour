@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { useLanguage } from "@/app/language-context";
 
@@ -12,17 +12,43 @@ export default function EvalPage() {
   const es = language === "es";
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const baselineRef = useRef<Record<string, number | undefined>>({});
+
+  const completedThisRun = useMemo(() => {
+    if (!running || !results) return 0;
+    return results.cases.filter(
+      (item) => item.lastRunAt !== undefined && item.lastRunAt !== baselineRef.current[item._id]
+    ).length;
+  }, [results, running]);
+
+  useEffect(() => {
+    if (running && results && results.cases.length > 0 && completedThisRun === results.cases.length) {
+      setRunning(false);
+    }
+  }, [completedThisRun, results, running]);
+
+  useEffect(() => {
+    if (!running) return;
+    const timeout = window.setTimeout(() => {
+      setRunning(false);
+      setRunError(es
+        ? "La evaluación tardó demasiado. Los casos terminados siguen guardados; puedes reintentar los demás."
+        : "The evaluation took too long. Completed cases are saved; you can retry the rest.");
+    }, 120_000);
+    return () => window.clearTimeout(timeout);
+  }, [es, running]);
 
   async function run() {
     if (running) return;
     setRunning(true);
     setRunError(null);
+    baselineRef.current = Object.fromEntries(
+      (results?.cases ?? []).map((item) => [item._id, item.lastRunAt])
+    );
     try {
       await runEvaluation();
-      // The run fans out in the background (one action per case, ~20s of LLM
-      // calls each). It is NOT done when this mutation returns: keep the
-      // button in "running" until the user leaves or reloads. Auto-clearing
-      // on a timer would lie about completion.
+      // Completion is detected reactively above as each case gets a new
+      // lastRunAt value. The button becomes usable again when all finish.
     } catch {
       setRunError(es ? "No se pudo iniciar la evaluación. Inténtalo de nuevo." : "Couldn't start the evaluation. Try again.");
       setRunning(false);
@@ -52,7 +78,11 @@ export default function EvalPage() {
         disabled={running}
         className="rounded-lg bg-amber-400 text-neutral-900 font-semibold px-6 py-3 disabled:opacity-50"
       >
-        {running ? (es ? "Corriendo contra la API Nebius en vivo..." : "Running against live Nebius API...") : (es ? "Correr evaluación ahora" : "Run evaluation now")}
+        {running
+          ? es
+            ? `Corriendo contra Nebius… ${completedThisRun}/${results?.cases.length ?? 0}`
+            : `Running against Nebius… ${completedThisRun}/${results?.cases.length ?? 0}`
+          : es ? "Correr evaluación ahora" : "Run evaluation now"}
       </button>
       {runError && (
         <p className="text-sm text-red-300" role="alert">{runError}</p>

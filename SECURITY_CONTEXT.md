@@ -5,6 +5,17 @@ Last updated: 2026-09-08.
 This file is the short handoff for Codex, OpenCode and Claude. Keep it current
 when changing security-sensitive flows.
 
+## Chat model (P1-3 latency, shipped 2026-09-08)
+
+- Default chat model is now `Qwen/Qwen3-30B-A3B-Instruct-2507`
+  (benchmarked ~4-5s vs ~20-45s for Llama-3.3-70B on the decideMatch
+  rerank, same routing decision, same rejection of direct-override and
+  authority-spoof attackers; **live prod eval after the switch: 10/10
+  accuracy, mean latency 4.7s; prod red-team probe attackerWon=false**).
+- Override without a redeploy: set `NEBIUS_CHAT_MODEL` in Convex env on
+  both dev and prod to `meta-llama/Llama-3.3-70B-Instruct` to revert.
+- `convex/nebius.ts` and `convex/evalRunner.ts` read it at runtime.
+
 ## Current access model
 
 - Public request/session links are intentionally share-link based.

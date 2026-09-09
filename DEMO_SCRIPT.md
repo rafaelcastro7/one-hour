@@ -7,8 +7,8 @@ so this is scripted shot by shot rather than a free-form walkthrough.
 - Deploy is live and seeded (`seedEvalCases:seed`, `seedVolunteers:seed`).
 - `/eval` has been run once, so the KPIs show real numbers, not dashes.
 - Browser zoom ~125%, no bookmarks bar, no other tabs.
-- Rehearse 3 times. Nebius calls take ~20s each — know exactly where the
-  waits are and talk through them instead of sitting in silence.
+- Rehearse 3 times. The match now lands in ~5-6s (faster model) — don't
+  pause expecting the old ~30s wait.
 - Post tags **@nerdconf_ar**.
 
 ---
@@ -38,8 +38,8 @@ Show the reply coming back in Spanish. Submit.
 On the status page, point at the **stages**, not a spinner:
 
 > "It's reading the conversation, then comparing against every active
-> volunteer. This takes about thirty seconds because two model calls run
-> back to back — so we show you what's happening instead of a spinner."
+> volunteer — two model calls run back to back, and in a few seconds it's
+> done. We show what's happening instead of a spinner."
 
 When the match lands:
 
@@ -57,8 +57,8 @@ Click confirm → **real Daily.co room opens**.
 Open **`/eval`**.
 
 > "We measure this. Ten labelled cases against the live Nebius API — not
-> mocks. Ten out of ten on routing, about thirty-four seconds end to end,
-> around four hundred ninety tokens per match."
+> mocks. Ten out of ten on routing, about five to six seconds end to end,
+> around five hundred twenty tokens per match."
 
 Then the red team:
 
@@ -115,9 +115,9 @@ inflate.
 | Claim | Value |
 |---|---|
 | Eval accuracy (routing) | 10/10 (verified on **production**) |
-| Mean latency | 33.7s (production) |
-| Mean tokens per match | 496.7 (production) |
-| Volunteers in demo pool | 10 (synthetic, labelled) |
+| Mean latency | ~5s (production, after model swap) |
+| Mean tokens per match | ~525 (production) |
+| Volunteers in demo pool | 12 (synthetic, labelled) |
 | Injection attack pre-fix | Won the match from the lowest score |
 | Keyword stuffing pre-fix | Reached rank #2 |
 | Keyword stuffing post-fix | Absent from top-3 |

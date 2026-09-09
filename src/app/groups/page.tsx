@@ -119,6 +119,14 @@ export default function GroupsPage() {
               </a>
             ) : (
               <div className="flex flex-col gap-2 pt-1">
+                {g.status === "ready" ? (
+                  <p className={g.roomError ? "text-sm text-red-300" : "text-sm text-neutral-400"} role="status">
+                    {g.roomError
+                      ? es ? "El proveedor de video falló; estamos reintentando automáticamente." : "The video provider failed; we're retrying automatically."
+                      : es ? "Grupo listo. Generando la sala de video…" : "Group ready. Generating the video room…"}
+                  </p>
+                ) : (
+                  <>
                 <input
                   className="rounded-lg bg-neutral-950 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
                   placeholder={es ? "Tu nombre" : "Your name"}
@@ -138,6 +146,8 @@ export default function GroupsPage() {
                 >
                   {es ? "Unirme al grupo" : "Join group"}
                 </button>
+                  </>
+                )}
               </div>
             )}
           </div>

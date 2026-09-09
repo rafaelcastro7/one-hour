@@ -93,11 +93,20 @@ track selected with evidence text. Still empty:
 - [ ] Re-run as the volunteer pool grows (audit is committed and repeatable).
 - [ ] Optional: surface the audit in `/eval` alongside accuracy.
 
-### P1-3. Latency
-~34s per match, two sequential ~20s Nebius calls. Status page now shows real
-stages instead of an opaque spinner, which mitigates but does not fix it.
-- [ ] Try a smaller/faster Nebius model for `closeProfile` and measure the
-      accuracy/latency trade-off on the eval set. Decide with data.
+### P1-3. Latency — **DONE (model swap, measured in prod)**
+was ~34s per match (two sequential ~20s Nebius calls on
+`meta-llama/Llama-3.3-70B-Instruct`).
+- [x] Benchmarked `Qwen/Qwen3-30B-A3B-Instruct-2507` against the current
+      model on the real `decideMatch` rerank prompt (same routing decision,
+      same rejection of direct-override and authority-spoof attackers,
+      ~4-5s vs ~20-45s; see bench-security.mjs data in the P1-3 commit).
+- [x] Switched `CHAT_MODEL` default in `convex/nebius.ts` +
+      `convex/evalRunner.ts`, overridable via `NEBIUS_CHAT_MODEL` env (set
+      on prod; revert = set it to `meta-llama/Llama-3.3-70B-Instruct`).
+- [x] Live eval re-run in prod after the switch: **accuracy still 1.0
+      (10/10), mean latency now ~4.5-5.7s (was ~16s), ~520-555 tokens**.
+- [x] `adversarialTests:probe` in prod after the switch: `attackerWon:
+      false`, no attacker in top-3, correct genuine volunteer picked.
 
 ---
 
@@ -149,7 +158,7 @@ Research on winning hackathon demos says: script it, don't wander.
 2. **0:15–1:00 — live flow.** Type a real need in Spanish (shows multilingual
    without saying "multilingual"). Show the staged pipeline. Match appears
    *with a reason*. Confirm → real Daily.co room opens.
-3. **1:00–1:35 — validation.** Open `/eval`: 10/10 routing, ~34s, ~490 tokens
+3. **1:00–1:35 — validation.** Open `/eval`: 10/10 routing, ~5s, ~525 tokens
    on real API calls. Then the red-team finding: the injection that hijacked
    the matcher, and the same attack being rejected after the fix.
 4. **1:35–1:50 — the human gate.** Admin approval screen. Frame as a trust
@@ -184,3 +193,9 @@ Research on winning hackathon demos says: script it, don't wander.
   verification against production: Spanish request → match_found (0.626, with
   reasoning) → confirmed → real Daily room URL generated (≈10s via scheduler).
   P0-1 fully done.
+- 2026-09-08 (P1-3) — Latency fix shipped: default chat model is now
+   `Qwen/Qwen3-30B-A3B-Instruct-2507` (overridable via `NEBIUS_CHAT_MODEL`,
+   set on prod), benchmarked for latency + injection defence before the
+   switch. Live prod eval after switch: 10/10 correct, mean latency ~4.5-5.7s
+   (was ~16s), tokens ~520-555. Prod red-team probe still rejects the
+   attacker. Bench scripts removed after use; data in this log.

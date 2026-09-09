@@ -38,9 +38,15 @@ export const createCommunity = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const rows = await ctx.db.query("communities").collect();
+    const rows = await ctx.db.query("communities").take(100);
     rows.sort((a, b) => b.memberEmails.length - a.memberEmails.length);
-    return rows.map((c) => ({ ...c, memberCount: c.memberEmails.length }));
+    return rows.map((community) => ({
+      _id: community._id,
+      name: community.name,
+      description: community.description,
+      category: community.category,
+      memberCount: community.memberEmails.length,
+    }));
   },
 });
 

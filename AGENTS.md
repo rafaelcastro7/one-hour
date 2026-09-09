@@ -28,10 +28,22 @@ deployment, which has its own separate data and env vars.
 
 **Env vars** (`npx convex env set KEY value [--prod]`, never in `.env.local`):
 `NEBIUS_API_KEY`, `TAVILY_API_KEY` (reserved, not wired into any code path
-yet), `DAILY_API_KEY`. Set on **both** dev and prod -- they do not carry
-over. Verified with a full end-to-end run (register volunteer -> close
-profile -> embed -> approve -> create request -> match -> confirm -> real
-Daily.co room URL).
+yet), `DAILY_API_KEY`, `LINKUP_API_KEY`, `ADMIN_APPROVAL_KEY`,
+`GROUP_HOST_CODE`. `NEBIUS_CHAT_MODEL` overrides the default chat model
+(`Qwen/Qwen3-30B-A3B-Instruct-2507` — see below). Set on **both** dev and
+prod -- they do not carry over. Verified with a full end-to-end run
+(register volunteer -> close profile -> embed -> approve -> create request
+-> match -> confirm -> real Daily.co room URL).
+
+**CHAT_MODEL default** is `Qwen/Qwen3-30B-A3B-Instruct-2507`, benchmarked
+~4s vs ~20-45s for `meta-llama/Llama-3.3-70B-Instruct` on the decideMatch
+rerank with the same routing decision and the same prompt-injection defence
+(direct-override and authority-spoof attackers still rejected). Measured in
+`bench-latency.mjs` / `bench-security.mjs` (deleted after use; data in the
+commit message). To revert to the previous default without a redeploy set
+`NEBIUS_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct` in Convex env on both
+dev and prod. `evalRunner.ts` mirrors the same default so the eval dashboard
+measures what users actually hit.
 
 **Seeding a fresh deployment** is required or the app looks broken:
 `npx convex run seedEvalCases:seed '{}' --prod` and

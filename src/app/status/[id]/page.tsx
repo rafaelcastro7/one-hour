@@ -17,8 +17,8 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
   const reportNoShow = useMutation(api.requests.reportNoShow);
   const checkIn = useMutation(api.requests.checkIn);
   const balance = useQuery(
-    api.credits.balanceOf,
-    request && request.email ? { email: request.email } : "skip"
+    api.credits.balanceForRequest,
+    request ? { requestId: id as Id<"requests"> } : "skip"
   );
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -253,8 +253,8 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
           </div>
           <p className="text-xs text-neutral-500 max-w-sm">
             {request.language === "es"
-              ? "Quien no haga check-in en 1 minuto queda marcado como ausente automáticamente."
-              : "Whoever doesn't check in within 1 minute is auto-flagged as a no-show."}
+              ? "El check-in deja constancia de asistencia. Los reportes de ausencia son manuales hasta que exista una hora de inicio exacta."
+              : "Check-in records attendance. No-shows stay manual until sessions have an exact start time."}
           </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-sm">
             <button

@@ -14,7 +14,15 @@ function getClient() {
   });
 }
 
-const CHAT_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+// CHAT_MODEL is selectable via env so it can be flipped back without a
+// redeploy. Default is Qwen3-30B-A3B: benchmarked at ~4s vs ~20-45s for
+// Llama-3.3-70B on the decideMatch rerank, same routing decision and the
+// same prompt-injection defence (both still reject a direct-override and an
+// authority-spoof attacker). See bench-security.mjs for the comparison data.
+// Override with NEBIUS_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct to fall
+// back to the previous default.
+const CHAT_MODEL =
+  process.env.NEBIUS_CHAT_MODEL ?? "Qwen/Qwen3-30B-A3B-Instruct-2507";
 const EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B";
 
 /**

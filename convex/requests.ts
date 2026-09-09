@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -95,9 +95,12 @@ export const get = query({
     const volunteer = req.matchedVolunteerId
       ? await ctx.db.get(req.matchedVolunteerId)
       : null;
-    if (!volunteer) return { ...req, volunteer };
+    // Capability links may expose this response to anyone holding the ID.
+    // Keep contact details, raw conversation and embeddings server-side.
+    const { email: _email, rawNeed: _rawNeed, history: _history, embedding: _embedding, ...publicRequest } = req;
+    if (!volunteer) return { ...publicRequest, volunteer };
     return {
-      ...req,
+      ...publicRequest,
       volunteer: {
         _id: volunteer._id,
         name: volunteer.name,
@@ -114,6 +117,11 @@ export const get = query({
       },
     };
   },
+});
+
+export const getInternal = internalQuery({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => await ctx.db.get(requestId),
 });
 
 export const confirmMatch = mutation({
@@ -170,14 +178,11 @@ export const confirmMatch = mutation({
       });
     } else {
       await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
-      // Attendance sweep: whoever never taps "I'm here" inside the window
-      // gets auto-flagged. 1 minute in test mode so the whole loop is
-      // verifiable live; raise NO_SHOW_WINDOW_MIN for production calm.
-      await ctx.scheduler.runAfter(
-        60_000 * 1,
-        internal.requestsActions.attendanceSweep,
-        { requestId }
-      );
+      // No automatic no-show sweep yet: confirmation may happen days before
+      // the requested slot, and the current model has no exact start time.
+      // Scheduling one here used to punish both parties one minute after
+      // confirmation, before many sessions had even begun. Manual reporting
+      // remains available until sessions store a real start timestamp.
     }
   },
 });
@@ -249,7 +254,12 @@ export const listByEmail = query({
         ? await ctx.db.get(req.matchedVolunteerId)
         : null;
       out.push({
-        ...req,
+        _id: req._id,
+        status: req.status,
+        needSummary: req.needSummary,
+        rawNeedPreview: req.rawNeed.slice(0, 80),
+        requesterRating: req.requesterRating,
+        createdAt: req.createdAt,
         volunteer: volunteer
           ? { _id: volunteer._id, name: volunteer.name, isVirtual: volunteer.isVirtual }
           : null,
@@ -288,7 +298,8 @@ export const listByVolunteer = query({
     return all.map((r) => ({
       _id: r._id,
       name: r.name,
-      email: r.email,
+      // A host needs a participant name and schedule, not their full email.
+      email: maskEmail(r.email),
       status: r.status,
       preferredTime: r.preferredTime,
       preferredTz: r.preferredTz,
@@ -298,6 +309,12 @@ export const listByVolunteer = query({
     }));
   },
 });
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "hidden";
+  return `${local.slice(0, 1)}***@${domain}`;
+}
 
 // Post-session rating, one per side (1-5). Sessions must be COMPLETED:
 // rating a merely confirmed session scores a call that may never happen.

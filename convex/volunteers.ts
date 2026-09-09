@@ -163,11 +163,28 @@ export const listActive = query({
     const all = await ctx.db
       .query("volunteers")
       .withIndex("by_active", (q) => q.eq("active", true))
-      .collect();
+      .take(100);
     // Public directory shows the same membership as matching: verified,
     // active, embedded. Pending rows stay invisible until a human approves.
     const withEmbeddings = all.filter((v) => v.verified && v.active && v.embedding.length > 0);
-    return category ? withEmbeddings.filter((v) => v.category === category) : withEmbeddings;
+    const filtered = category ? withEmbeddings.filter((v) => v.category === category) : withEmbeddings;
+    // Public directory projection. Never ship emails, LinkedIn URLs, raw
+    // intake text, quiz answers or embeddings to every visitor.
+    return filtered.map((volunteer) => ({
+      _id: volunteer._id,
+      name: volunteer.name,
+      category: volunteer.category,
+      profileSummary: volunteer.profileSummary,
+      skillLevel: volunteer.skillLevel,
+      slots: volunteer.slots,
+      isVirtual: volunteer.isVirtual,
+      ratingSum: volunteer.ratingSum,
+      ratingCount: volunteer.ratingCount,
+      completedCount: volunteer.completedCount,
+      noShowCount: volunteer.noShowCount,
+      latestReview: volunteer.latestReview,
+      latestReviewer: volunteer.latestReviewer,
+    }));
   },
 });
 
