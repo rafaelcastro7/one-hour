@@ -14,8 +14,10 @@ export const createGroup = mutation({
     template: v.string(),
     slots: v.array(v.string()),
     capacity: v.number(),
+    hostCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    requireHostCode(args.hostCode);
     if (!args.title.trim()) throw new Error("Give your group a title.");
     if (!Number.isInteger(args.capacity) || args.capacity < 2 || args.capacity > 12) {
       throw new Error("Capacity must be between 2 and 12.");
@@ -56,7 +58,8 @@ export const get = query({
   },
 });
 
-export const listOpen = query({  args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },
+export const listOpen = query({
+  args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },
   handler: async (ctx, { category }) => {
     const rows = await ctx.db
       .query("groups")
@@ -84,7 +87,7 @@ export const joinGroup = mutation({
     email: v.string(),
   },
   handler: async (ctx, { groupId, name, email }) => {
-    if (!name.trim()) throw new Error("Tell us your name so the host knows who is coming.");
+    if (!name.trim() || name.trim().length > 80) throw new Error("Tell us your name (1–80 characters) so the host knows who is coming.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       throw new Error("That email doesn't look valid.");
     }
@@ -110,8 +113,9 @@ export const joinGroup = mutation({
 // Host confirms early (before full): room generates now, group closes to
 // new members. Members get the same link from the group card.
 export const confirmGroup = mutation({
-  args: { groupId: v.id("groups"), volunteerEmail: v.string() },
-  handler: async (ctx, { groupId, volunteerEmail }) => {
+  args: { groupId: v.id("groups"), volunteerEmail: v.string(), hostCode: v.optional(v.string()) },
+  handler: async (ctx, { groupId, volunteerEmail, hostCode }) => {
+    requireHostCode(hostCode);
     const g = await ctx.db.get(groupId);
     if (!g) throw new Error("Group not found.");
     const vol = await ctx.db.get(g.volunteerId);
@@ -127,9 +131,24 @@ export const confirmGroup = mutation({
   },
 });
 
+// Undo a join while the group is still open. Once ready (room generated),
+// leaving is blocked: the room counts on its members.
+export const leaveGroup = mutation({
+  args: { groupId: v.id("groups"), email: v.string() },
+  handler: async (ctx, { groupId, email }) => {
+    const g = await ctx.db.get(groupId);
+    if (!g) throw new Error("Group not found.");
+    if (g.status !== "open") throw new Error("This group already has its room — leaving is closed.");
+    const lower = email.toLowerCase().trim();
+    if (!g.members.some((m) => m.email === lower)) throw new Error("You're not in this group.");
+    await ctx.db.patch(groupId, { members: g.members.filter((m) => m.email !== lower) });
+  },
+});
+
 export const closeGroup = mutation({
-  args: { groupId: v.id("groups"), volunteerEmail: v.string() },
-  handler: async (ctx, { groupId, volunteerEmail }) => {
+  args: { groupId: v.id("groups"), volunteerEmail: v.string(), hostCode: v.optional(v.string()) },
+  handler: async (ctx, { groupId, volunteerEmail, hostCode }) => {
+    requireHostCode(hostCode);
     const g = await ctx.db.get(groupId);
     if (!g) throw new Error("Group not found.");
     const vol = await ctx.db.get(g.volunteerId);
@@ -139,6 +158,16 @@ export const closeGroup = mutation({
     await ctx.db.patch(groupId, { status: "closed" });
   },
 });
+
+function requireHostCode(hostCode: string | undefined) {
+  const expected = process.env.GROUP_HOST_CODE;
+  if (!expected) {
+    throw new Error("Group hosting is not configured.");
+  }
+  if (!hostCode || hostCode !== expected) {
+    throw new Error("Verified host code is required.");
+  }
+}
 
 export const setGroupRoomUrl = internalMutation({
   args: { groupId: v.id("groups"), roomUrl: v.string() },

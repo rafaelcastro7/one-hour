@@ -7,7 +7,11 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { useLanguage } from "@/app/language-context";
 
 export default function AdminPage() {
-  const pending = useQuery(api.volunteers.pendingApproval);
+  const [adminKey, setAdminKey] = useState("");
+  const pending = useQuery(
+    api.volunteers.pendingApproval,
+    adminKey ? { adminKey } : "skip"
+  );
   const approve = useMutation(api.volunteers.approve);
   const { language } = useLanguage();
   const es = language === "es";
@@ -16,7 +20,7 @@ export default function AdminPage() {
   async function handleApprove(id: Id<"volunteers">) {
     setError(null);
     try {
-      await approve({ volunteerId: id });
+      await approve({ volunteerId: id, adminKey });
     } catch (e) {
       // Approving a volunteer whose intake failed is rejected server-side;
       // surface that instead of letting the click appear to do nothing.
@@ -32,6 +36,13 @@ export default function AdminPage() {
           ? "Puerta humana manual: verifica que cada persona sea quien dice ser antes de activarla, sobre todo en categorías sensibles."
           : "Manual human gate: verify each person is who they say they are before activating them, especially in sensitive categories."}
       </p>
+      <input
+        className="w-full max-w-md rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
+        placeholder={es ? "Clave de aprobacion" : "Approval key"}
+        type="password"
+        value={adminKey}
+        onChange={(e) => setAdminKey(e.target.value)}
+      />
 
       {error && (
         <p className="max-w-2xl text-sm text-red-400 bg-red-950/40 border border-red-500/30 rounded-lg px-4 py-3">

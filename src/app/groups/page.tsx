@@ -24,6 +24,7 @@ export default function GroupsPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const [hostEmail, setHostEmail] = useState("");
+  const [hostCode, setHostCode] = useState("");
   const [hostTitle, setHostTitle] = useState("");
   const [hostTemplate, setHostTemplate] = useState("mock-interview");
   const [hostPreset, setHostPreset] = useState<SlotId[]>([...(PRESETS[0]?.slots ?? [])]);
@@ -58,6 +59,7 @@ export default function GroupsPage() {
         template: hostTemplate,
         slots: hostPreset,
         capacity: hostCap,
+        hostCode,
       });
       setHostTitle("");
       setMsg(es ? "Grupo creado. Aparece arriba en cuanto abre." : "Group created. It shows up above once open.");
@@ -155,6 +157,13 @@ export default function GroupsPage() {
             type="email"
             value={hostEmail}
             onChange={(e) => setHostEmail(e.target.value)}
+          />
+          <input
+            className="rounded-lg bg-neutral-950 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
+            placeholder={es ? "Codigo privado de host" : "Private host code"}
+            type="password"
+            value={hostCode}
+            onChange={(e) => setHostCode(e.target.value)}
           />
           <input
             className="rounded-lg bg-neutral-950 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"

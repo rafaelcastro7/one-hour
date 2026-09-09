@@ -27,6 +27,23 @@ export const create = mutation({
     // Charge BEFORE the insert (so a broke user never creates a request the
     // pipeline can't serve), but refund if the insert/schedule fails — a
     // lost credit with no request is the worst outcome of this ordering.
+    // Brute-force guards mirror volunteers.register: capped free text,
+    // bounded history and slots so oversized payloads never reach the LLM.
+    if (args.name.trim().length === 0 || args.name.trim().length > 80) {
+      throw new Error("Name must be 1–80 characters.");
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.email.trim())) {
+      throw new Error("That email doesn't look valid.");
+    }
+    if (args.rawNeed.length > 2000) {
+      throw new Error("Need description must be 2000 characters or less.");
+    }
+    if (args.history.length > 50) {
+      throw new Error("Conversation history is too long.");
+    }
+    if (args.preferredSlots.length > 21) {
+      throw new Error("Too many preferred slots.");
+    }
     await ctx.runMutation(internal.credits.ensureAndGrantWelcome, { email: args.email });
     await ctx.runMutation(internal.credits.charge, { email: args.email, amount: 1 });
 
@@ -153,7 +170,33 @@ export const confirmMatch = mutation({
       });
     } else {
       await ctx.scheduler.runAfter(0, internal.requestsActions.createRoom, { requestId });
+      // Attendance sweep: whoever never taps "I'm here" inside the window
+      // gets auto-flagged. 1 minute in test mode so the whole loop is
+      // verifiable live; raise NO_SHOW_WINDOW_MIN for production calm.
+      await ctx.scheduler.runAfter(
+        60_000 * 1,
+        internal.requestsActions.attendanceSweep,
+        { requestId }
+      );
     }
+  },
+});
+
+// Attendance check-in: "I'm here" from the shared status link. Either side,
+// any time while confirmed. Idempotent.
+export const checkIn = mutation({
+  args: {
+    requestId: v.id("requests"),
+    side: v.union(v.literal("requester"), v.literal("volunteer")),
+  },
+  handler: async (ctx, { requestId, side }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req) throw new Error("Request not found");
+    if (req.status !== "confirmed") throw new Error("Check-in is only for confirmed sessions.");
+    await ctx.db.patch(
+      requestId,
+      side === "requester" ? { requesterHereAt: Date.now() } : { volunteerHereAt: Date.now() }
+    );
   },
 });
 
@@ -322,6 +365,85 @@ export const completeSession = mutation({
         await ctx.db.patch(vol._id, { completedCount: (vol.completedCount ?? 0) + 1 });
       }
     }
+  },
+});
+
+// Automatic outcomes for the attendance sweep. Same economics as the manual
+// reportNoShow paths, minus the human reporter.
+export const autoNoShowVolunteer = internalMutation({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req || req.status !== "confirmed") return;
+    if (req.matchedVolunteerId) {
+      const vol = await ctx.db.get(req.matchedVolunteerId);
+      if (vol) {
+        const strikes = (vol.noShowCount ?? 0) + 1;
+        await ctx.db.patch(vol._id, {
+          noShowCount: strikes,
+          ...(strikes >= 3 ? { active: false } : {}),
+        });
+      }
+    }
+    const history = (req.history ?? []).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+    if (history.length === 0) {
+      await ctx.db.patch(requestId, {
+        status: "failed",
+        matchedVolunteerId: undefined,
+        matchReasoning: "The volunteer didn't show up and the original conversation is gone.",
+        roomUrl: undefined,
+        isVirtual: undefined,
+      });
+      return;
+    }
+    await ctx.db.patch(requestId, {
+      status: "searching",
+      matchedVolunteerId: undefined,
+      matchScore: undefined,
+      matchReasoning: "The volunteer didn't show up in time. Finding someone else.",
+      roomUrl: undefined,
+      isVirtual: undefined,
+      requesterRating: undefined,
+      volunteerRating: undefined,
+    });
+    await ctx.scheduler.runAfter(0, internal.requestsActions.buildAndMatch, {
+      requestId,
+      history,
+    });
+  },
+});
+
+export const autoNoShowRequester = internalMutation({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req || req.status !== "confirmed") return;
+    await ctx.db.patch(requestId, { status: "completed" });
+    if (req.matchedVolunteerId && !req.isVirtual) {
+      const vol = await ctx.db.get(req.matchedVolunteerId);
+      if (vol && !vol.isVirtual) {
+        await ctx.runMutation(internal.credits.earn, { email: vol.email, amount: 1 });
+      }
+    }
+  },
+});
+
+export const autoNoShowNobody = internalMutation({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const req = await ctx.db.get(requestId);
+    if (!req || req.status !== "confirmed") return;
+    await ctx.db.patch(requestId, {
+      status: "failed",
+      matchedVolunteerId: undefined,
+      matchReasoning: "Nobody checked in for this session. Your credit was refunded.",
+      roomUrl: undefined,
+      isVirtual: undefined,
+    });
+    await ctx.runMutation(internal.credits.earn, { email: req.email, amount: 1 });
   },
 });
 

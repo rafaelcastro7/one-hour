@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:persona:brute": "node persona-bruta.mjs",
+    "test:persona:malicious": "node persona-maliciosa.mjs",
+    "test:persona": "npm run test:persona:brute && npm run test:persona:malicious",
+    "probe:approval": "node probe-approve.mjs",
+    "probe:prod:pending": "node probe-prod-pending.mjs"
   },
   "dependencies": {
     "convex": "^1.45.0",

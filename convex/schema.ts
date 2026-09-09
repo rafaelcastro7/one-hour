@@ -93,6 +93,11 @@ export default defineSchema({
     // volunteer a recurring user asked for again (matching boost).
     template: v.optional(v.string()),
     preferredVolunteerId: v.optional(v.id("volunteers")),
+    // Attendance check-in (ms timestamps): each side taps "I'm here" from
+    // the shared status link. The sweep auto-flags whoever never checked in
+    // once the no-show window expires. Self-declared (no auth in v1).
+    requesterHereAt: v.optional(v.number()),
+    volunteerHereAt: v.optional(v.number()),
     // Detected user language (en/es/fr/zh...). Matching data stays in
     // English, but everything the user reads renders in this language.
     language: v.optional(v.string()),

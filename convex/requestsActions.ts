@@ -283,3 +283,38 @@ export const createRoom = internalAction({
     }
   },
 });
+
+// Automatic no-show sweep. Fires once per confirmed session when the window
+// expires (1 minute in test mode so the loop is verifiable live). Only acts
+// on sessions still sitting in "confirmed": finished, requeued or failed
+// rows are someone else's story by then.
+//   both checked in  -> nothing (they met)
+//   volunteer missing -> strike + requeue (requester path)
+//   requester missing -> complete + pay the waiting volunteer
+//   both missing      -> failed + refund (nobody came, nobody pays)
+export const attendanceSweep = internalAction({
+  args: { requestId: v.id("requests") },
+  handler: async (ctx, { requestId }) => {
+    const req: {
+      status?: string;
+      requesterHereAt?: number;
+      volunteerHereAt?: number;
+      matchedVolunteerId?: string;
+      email?: string;
+    } | null = await ctx.runQuery(api.requests.get, { requestId });
+    if (!req || req.status !== "confirmed") return;
+    const hereR = !!req.requesterHereAt;
+    const hereV = !!req.volunteerHereAt;
+    if (hereR && hereV) return;
+
+    if (!hereV && hereR) {
+      await ctx.runMutation(internal.requests.autoNoShowVolunteer, { requestId });
+      return;
+    }
+    if (hereV && !hereR) {
+      await ctx.runMutation(internal.requests.autoNoShowRequester, { requestId });
+      return;
+    }
+    await ctx.runMutation(internal.requests.autoNoShowNobody, { requestId });
+  },
+});

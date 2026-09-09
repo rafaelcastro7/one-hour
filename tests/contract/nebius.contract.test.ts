@@ -1,5 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
 import { server } from '../mocks/handlers';
+import { http, HttpResponse } from 'msw';
 import { fixtures } from '../mocks/fixtures';
 
 const NEBIUS_BASE = 'https://api.tokenfactory.nebius.com/v1';
@@ -124,7 +125,24 @@ describe('Nebius API Contract Tests', () => {
   });
 
   test('handles rate limit error (429)', async () => {
-    // This would require overriding the handler - tested in error scenario tests
-    expect(true).toBe(true); // Placeholder
+    server.use(
+      http.post(`${NEBIUS_BASE}/chat/completions`, () =>
+        HttpResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+      )
+    );
+
+    const response = await fetch(`${NEBIUS_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'meta-llama/Llama-3.3-70B-Instruct',
+        messages: [{ role: 'user', content: 'Trigger 429' }],
+      }),
+    });
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'Rate limit exceeded',
+    });
   });
 });

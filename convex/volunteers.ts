@@ -38,6 +38,27 @@ export const register = mutation({
     if (args.slots.length === 0) {
       throw new Error("Pick at least one availability slot.");
     }
+    // Brute-force guards: the quiz has exactly 3 questions, slots are
+    // day×block ids (7×3=21 max), and free text is capped so one giant
+    // payload can't bloat rows or downstream prompts.
+    if (!Number.isInteger(args.quizScore) || args.quizScore < 0 || args.quizScore > 3) {
+      throw new Error("Quiz score must be between 0 and 3.");
+    }
+    if (args.slots.length > 21) {
+      throw new Error("Too many availability slots.");
+    }
+    if (args.name.trim().length === 0 || args.name.trim().length > 80) {
+      throw new Error("Name must be 1–80 characters.");
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.email.trim())) {
+      throw new Error("That email doesn't look valid.");
+    }
+    if (args.rawOffer.length > 2000) {
+      throw new Error("Offer description must be 2000 characters or less.");
+    }
+    if (args.history.length > 50) {
+      throw new Error("Conversation history is too long.");
+    }
     const id = await ctx.db.insert("volunteers", {
       name: args.name,
       email: args.email.toLowerCase().trim(),
@@ -84,8 +105,9 @@ export const finishProfile = internalMutation({
 
 // List of volunteers pending manual approval (admin panel)
 export const pendingApproval = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { adminKey: v.optional(v.string()) },
+  handler: async (ctx, { adminKey }) => {
+    requireAdmin(adminKey);
     return await ctx.db
       .query("volunteers")
       .filter((q) => q.eq(q.field("verified"), false))
@@ -94,15 +116,16 @@ export const pendingApproval = query({
 });
 
 export const approve = mutation({
-  args: { volunteerId: v.id("volunteers") },
-  handler: async (ctx, { volunteerId }) => {
+  args: { volunteerId: v.id("volunteers"), adminKey: v.optional(v.string()) },
+  handler: async (ctx, { volunteerId, adminKey }) => {
+    requireAdmin(adminKey);
     const volunteer = await ctx.db.get(volunteerId);
     if (!volunteer) throw new Error("Volunteer not found");
 
     // A volunteer with no embedding can never be retrieved, so approving one
     // would silently produce a member who exists in the admin list but is
     // invisible to matching forever. Usually means intake hit a timeout.
-    if (volunteer.embedding.length === 0) {
+    if (!Array.isArray(volunteer.embedding) || volunteer.embedding.length === 0) {
       throw new Error(
         "This volunteer has no profile embedding (intake likely failed). Re-run their intake before approving."
       );
@@ -123,6 +146,16 @@ export const approve = mutation({
     await ctx.db.patch(volunteerId, { verified: true, active: true });
   },
 });
+
+function requireAdmin(adminKey: string | undefined) {
+  const expected = process.env.ADMIN_APPROVAL_KEY;
+  if (!expected) {
+    throw new Error("Admin approval is not configured.");
+  }
+  if (!adminKey || adminKey !== expected) {
+    throw new Error("Admin approval key is required.");
+  }
+}
 
 export const listActive = query({
   args: { category: v.optional(v.union(v.literal("tech"), v.literal("languages"))) },

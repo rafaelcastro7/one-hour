@@ -44,6 +44,27 @@ export const list = query({
   },
 });
 
+// Undo a join. Founder leaving an empty community deletes it.
+export const leave = mutation({
+  args: { name: v.string(), email: v.string() },
+  handler: async (ctx, { name, email }) => {
+    const lower = email.toLowerCase().trim();
+    const c = await ctx.db
+      .query("communities")
+      .withIndex("by_name", (q) => q.eq("name", name))
+      .unique();
+    if (!c) throw new Error("Community not found.");
+    if (!c.memberEmails.includes(lower)) throw new Error("You're not a member.");
+    const rest = c.memberEmails.filter((m) => m !== lower);
+    if (rest.length === 0) {
+      await ctx.db.delete(c._id);
+      return { memberCount: 0, deleted: true };
+    }
+    await ctx.db.patch(c._id, { memberEmails: rest });
+    return { memberCount: rest.length, deleted: false };
+  },
+});
+
 export const join = mutation({
   args: { name: v.string(), email: v.string() },
   handler: async (ctx, { name, email }) => {

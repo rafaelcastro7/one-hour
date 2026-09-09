@@ -15,6 +15,7 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
   const completeSession = useMutation(api.requests.completeSession);
   const submitRating = useMutation(api.requests.submitRating);
   const reportNoShow = useMutation(api.requests.reportNoShow);
+  const checkIn = useMutation(api.requests.checkIn);
   const balance = useQuery(
     api.credits.balanceOf,
     request && request.email ? { email: request.email } : "skip"
@@ -218,6 +219,43 @@ export default function StatusPage({ params }: { params: Promise<{ id: string }>
           {actionMsg && (
             <p className="text-sm text-neutral-300 max-w-sm" role="status">{actionMsg}</p>
           )}
+          <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+            <button
+              onClick={() =>
+                runAction(
+                  () => checkIn({ requestId: id as Id<"requests">, side: "requester" }),
+                  request.language === "es" ? "Check-in listo: estás aquí." : "Checked in: you're here.",
+                  request.language === "es" ? "No se pudo registrar." : "Couldn't check in."
+                )
+              }
+              disabled={!!request.requesterHereAt}
+              className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-amber-400 transition-colors disabled:opacity-50"
+            >
+              {request.requesterHereAt
+                ? (request.language === "es" ? "✓ Estoy aquí" : "✓ I'm here")
+                : (request.language === "es" ? "Estoy aquí (solicitante)" : "I'm here (requester)")}
+            </button>
+            <button
+              onClick={() =>
+                runAction(
+                  () => checkIn({ requestId: id as Id<"requests">, side: "volunteer" }),
+                  request.language === "es" ? "Check-in listo: voluntario aquí." : "Checked in: volunteer here.",
+                  request.language === "es" ? "No se pudo registrar." : "Couldn't check in."
+                )
+              }
+              disabled={!!request.volunteerHereAt}
+              className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:border-amber-400 transition-colors disabled:opacity-50"
+            >
+              {request.volunteerHereAt
+                ? (request.language === "es" ? "✓ Voluntario aquí" : "✓ Volunteer here")
+                : (request.language === "es" ? "Estoy aquí (voluntario)" : "I'm here (volunteer)")}
+            </button>
+          </div>
+          <p className="text-xs text-neutral-500 max-w-sm">
+            {request.language === "es"
+              ? "Quien no haga check-in en 1 minuto queda marcado como ausente automáticamente."
+              : "Whoever doesn't check in within 1 minute is auto-flagged as a no-show."}
+          </p>
           <div className="flex flex-wrap justify-center gap-2 max-w-sm">
             <button
               onClick={() =>
