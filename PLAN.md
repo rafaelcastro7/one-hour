@@ -50,6 +50,8 @@ That sets the priority order below: **ship first, polish second.**
       reasoning) → confirm → real Daily room generated on
       `energized-retriever-599.convex.cloud`. Frontend (Render) confirmed
       wired to the prod backend.
+- [x] Render is the SUBMISSION URL: https://onehour-vn98.onrender.com
+      (permanent, auto-deploys on push; last push 803b35a verified live).
 
 ### P0-2. Public GitHub repo — **DONE**
 - [x] Live at https://github.com/rafaelcastro7/one-hour
@@ -65,9 +67,10 @@ That sets the priority order below: **ship first, polish second.**
 ### P0-4. Finish the submission form
 Already saved: name, one-liner, description, AI-tooling answer, Applied AI
 track selected with evidence text. Still empty:
-- [ ] Project URL (needs P0-1)
-- [ ] X post URL (needs P0-3)
-- [ ] GitHub URL (needs P0-2)
+- [ ] Project URL — use **https://onehour-vn98.onrender.com** (Render,
+      permanent; NOT a temporary Vercel URL)
+- [ ] X post URL (needs P0-3: record video + post, tag @nerdconf_ar)
+- [ ] GitHub URL — https://github.com/rafaelcastro7/one-hour
 - [ ] Press **Submit** — it is currently a *draft*, and a draft is not an entry.
 
 ---
