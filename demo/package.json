@@ -1,0 +1,9 @@
+{
+  "name": "1hour-demo",
+  "private": true,
+  "description": "Local demo-recording tooling only. Playwright lives here so it never ships to the Render production build.",
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "playwright-core": "^1.63.0"
+  }
+}
