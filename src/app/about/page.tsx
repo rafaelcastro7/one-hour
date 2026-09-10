@@ -12,18 +12,18 @@ export default function AboutPage() {
         <h1 className="text-3xl font-bold tracking-tight text-center">{es ? "Acerca de 1hour" : "About 1hour"}</h1>
         <p className="text-neutral-400 text-center">
           {es
-            ? "Un hub de voluntariado con IA. Una hora dada, una hora que puedes reclamar — sin el cuello de botella de la coordinación manual."
-            : "An AI-matched volunteering hub. One hour given, one hour you can claim — without the manual coordination bottleneck."}
+            ? "Voluntariado matcheado por IA. Una hora dada, una hora reclamada. Sin cuellos de botella."
+            : "AI-matched volunteering. One hour given, one hour claimed. No coordination bottleneck."}
         </p>
 
         <section className="rounded-xl border border-neutral-800 bg-neutral-900 p-6 space-y-3">
           <h2 className="font-semibold text-lg">{es ? "Cómo funciona el matching" : "How matching works"}</h2>
           <ol className="list-decimal list-inside space-y-2 text-sm text-neutral-300">
-            <li>{es ? "Describes lo que necesitas u ofreces, en conversación — no un formulario." : "You describe what you need or offer, in conversation — not a form."}</li>
-            <li>{es ? "El agente lo cierra en un perfil estructurado (categoría, urgencia, resumen)." : "The agent closes it into a structured profile (category, urgency, summary)."}</li>
-            <li>{es ? "Ese resumen se convierte en embedding (Qwen3-Embedding-8B) y se compara por similitud coseno." : "That summary is embedded (Qwen3-Embedding-8B) and compared by cosine similarity."}</li>
-            <li>{es ? "Los 3 mejores van a una segunda llamada LLM (Qwen3-30B) que elige y explica por qué." : "Top-3 candidates go to a second LLM call (Qwen3-30B) that picks and explains why."}</li>
-            <li>{es ? "Al confirmar, se crea en vivo una sala Daily.co en ambas pantallas — o, para la voluntaria IA, un chat instantáneo con Aria." : "On confirm, a Daily.co video room is created live on both screens — or, for the AI volunteer, an instant Aria chat opens instead."}</li>
+            <li>{es ? "Describe tu necesidad u oferta en chat — no un formulario." : "Describe your need or offer in chat — not a form."}</li>
+            <li>{es ? "El agente lo estructura en un perfil (categoría, urgencia, resumen)." : "The agent structures it into a profile (category, urgency, summary)."}</li>
+            <li>{es ? "Qwen3-Embedding-8B lo convierte en embedding y compara por similitud coseno." : "Qwen3-Embedding-8B embeds it and compares by cosine similarity."}</li>
+            <li>{es ? "El top-3 lo decide Qwen3-30B (Nebius), que elige y explica por qué." : "Qwen3-30B (Nebius) decides the top-3 pick and explains why."}</li>
+            <li>{es ? "Al confirmar se abre una sala Daily.co en vivo en ambas pantallas — o un chat instantáneo con Aria, la voluntaria IA." : "On confirm, a live Daily.co room opens on both screens — or an instant Aria chat, the AI volunteer."}</li>
           </ol>
         </section>
 
@@ -31,9 +31,9 @@ export default function AboutPage() {
           <h2 className="font-semibold text-lg">{es ? "Medido, no afirmado" : "Measured, not claimed"}</h2>
           <p className="text-sm text-neutral-300">
             {es ? (
-              <>La eval en vivo en <Link href="/eval" className="text-amber-400 underline">/eval</Link> corre un set etiquetado contra el pipeline real — precisión de ruteo, segundos por match y tokens por match, medidos en vivo. Un harness red-team encontró una inyección de prompts funcional y un ataque de keyword-stuffing — ambos corregidos y con tests de regresión.</>
+              <>La eval en vivo en <Link href="/eval" className="text-amber-400 underline">/eval</Link> corre casos etiquetados contra el pipeline real — precisión, latencia y tokens medidos en vivo. El red-team corrigió una inyección de prompts y un keyword-stuffing, con tests de regresión.</>
             ) : (
-              <>The live eval at <Link href="/eval" className="text-amber-400 underline">/eval</Link> runs a labelled set against the real pipeline — routing accuracy, seconds per match and tokens per match, measured live rather than asserted. A red-team harness found a working prompt injection and a keyword-stuffing attack — both fixed and regression-tested.</>
+              <>The live eval at <Link href="/eval" className="text-amber-400 underline">/eval</Link> runs labelled cases against the real pipeline — accuracy, latency and tokens measured live. A red-team fixed a prompt injection and keyword-stuffing, both regression-tested.</>
             )}
           </p>
         </section>

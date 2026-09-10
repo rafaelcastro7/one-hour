@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { LanguageSelectorButton, useLanguage } from "@/app/language-context";
 
 const NAV: Record<"en" | "es", Record<string, string>> = {
-  en: { about: "About", volunteers: "Volunteers", groups: "Groups", communities: "Communities", sessions: "Sessions", judges: "Judges", evidence: "Evidence", demo: "Demo", getHelp: "Get help" },
-  es: { about: "Nosotros", volunteers: "Voluntarios", groups: "Grupos", communities: "Comunidades", sessions: "Sesiones", judges: "Jurado", evidence: "Evidencia", demo: "Demo", getHelp: "Pedir ayuda" },
+  en: { about: "About", volunteers: "Volunteers", judges: "Judges", evidence: "Evidence", demo: "Demo", getHelp: "Get help" },
+  es: { about: "Nosotros", volunteers: "Voluntarios", judges: "Jurado", evidence: "Evidencia", demo: "Demo", getHelp: "Pedir ayuda" },
 };
 
 export function SiteHeader() {
@@ -21,9 +21,6 @@ export function SiteHeader() {
   const links = [
     ["/about", t.about],
     ["/volunteers", t.volunteers],
-    ["/groups", t.groups],
-    ["/communities", t.communities],
-    ["/sessions", t.sessions],
     ["/jury", t.judges],
     ["/eval", t.evidence],
     ["/demo", t.demo],

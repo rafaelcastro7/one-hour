@@ -43,8 +43,8 @@ export default function AdminPage() {
       <h1 className="text-2xl font-bold">{es ? "Aprobación de voluntarios" : "Volunteer approval"}</h1>
       <p className="text-sm text-neutral-400 max-w-md text-center">
         {es
-          ? "Puerta humana manual: verifica que cada persona sea quien dice ser antes de activarla, sobre todo en categorías sensibles."
-          : "Manual human gate: verify each person is who they say they are before activating them, especially in sensitive categories."}
+          ? "Puerta humana manual: verifica la identidad antes de activar, especialmente en categorías sensibles."
+          : "Manual human gate: verify identity before activation, especially in sensitive categories."}
       </p>
       <input
         className="w-full max-w-md rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2 text-sm outline-none focus:border-amber-400"
@@ -74,7 +74,6 @@ export default function AdminPage() {
               <p className="font-semibold">
                 {v.name} <span className="text-xs text-neutral-500">({v.category})</span>
               </p>
-              <p className="text-sm text-neutral-400">{v.email}</p>
               <p className="text-sm text-neutral-300 mt-2">{v.profileSummary || v.rawOffer}</p>
               <div className="flex flex-wrap gap-2 mt-2 text-xs">
                 {v.linkedinUrl ? (
@@ -90,13 +89,8 @@ export default function AdminPage() {
                   <span className="text-red-300">{es ? "Sin LinkedIn — no se puede aprobar" : "No LinkedIn — cannot approve"}</span>
                 )}
                 <span className="text-neutral-500">
-                  {es ? "Prueba" : "Quiz"}: {v.quizScore ?? 0}/3{v.skillLevel ? ` (${v.skillLevel})` : ""}
+                  {es ? "Prueba" : "Quiz"}: {v.quizScore ?? 0}/3
                 </span>
-                {v.slots && v.slots.length > 0 && (
-                  <span className="text-neutral-500">
-                    {es ? "Libre" : "Free"}: {v.slots.slice(0, 4).join(", ")}{v.slots.length > 4 ? ` +${v.slots.length - 4}` : ""}
-                  </span>
-                )}
               </div>
             </div>
             <button

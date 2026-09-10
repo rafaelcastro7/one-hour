@@ -96,7 +96,7 @@ export default function OfferPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-8 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">{es ? "Cuéntanos qué puedes ofrecer" : "Tell us what you can offer"}</h1>
+      <h1 className="text-2xl font-bold">{es ? "¿Qué puedes ofrecer?" : "What can you offer?"}</h1>
       {step !== "done" && (
         <ol className="flex items-center gap-2 text-xs text-neutral-500" aria-label="Progress">
           {[es ? "Chat" : "Chat", es ? "Datos" : "Details", es ? "Prueba" : "Skills check"].map((label, i) => {

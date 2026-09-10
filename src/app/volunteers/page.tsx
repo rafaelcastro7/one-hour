@@ -23,9 +23,9 @@ export default function VolunteersPage() {
         <h1 className="text-2xl font-bold">{es ? "Voluntarios" : "Volunteers"}</h1>
         <p className="text-sm text-neutral-400">
           {es ? (
-            <>Gente real (y Aria, nuestra IA de respaldo) regalando una hora. ¿Prefieres que la IA elija? <Link href="/request" className="text-amber-400 underline">Pide ayuda</Link>.</>
+            <>Gente real (y Aria) dando una hora. ¿Prefieres que elija la IA? <Link href="/request" className="text-amber-400 underline">Pide ayuda</Link>.</>
           ) : (
-            <>Real people (and Aria, our AI fallback) giving an hour. Prefer the AI to choose? <Link href="/request" className="text-amber-400 underline">Request help</Link>.</>
+            <>Real people (and Aria) giving an hour. Prefer the AI to choose? <Link href="/request" className="text-amber-400 underline">Request help</Link>.</>
           )}
         </p>
       </div>

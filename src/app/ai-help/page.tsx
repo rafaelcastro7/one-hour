@@ -48,8 +48,8 @@ export default function AiHelpPage() {
         <h1 className="text-2xl font-bold">{es ? "Ayuda instantánea con IA" : "Instant AI help"}</h1>
         <p className="text-sm text-neutral-400 max-w-sm">
           {es
-            ? "¿Sin humanos disponibles? Aria responde al instante. Elige un tema — un voluntario humano sigue siendo mejor para lo sensible."
-            : "No human available right now? Aria answers instantly. Pick a topic — a human volunteer is still the better choice for anything sensitive."}
+            ? "¿Sin humanos libres? Aria responde al instante. Elige un tema — humanos preferidos para temas sensibles."
+            : "No humans free? Aria answers instantly. Pick a topic — humans preferred for anything sensitive."}
         </p>
         <div className="flex gap-4">
           <button

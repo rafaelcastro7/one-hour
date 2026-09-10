@@ -32,8 +32,8 @@ export default function SessionsPage() {
         <h1 className="text-2xl font-bold">{es ? "Mis sesiones" : "My sessions"}</h1>
         <p className="text-sm text-neutral-400">
           {es
-            ? "Escribe tu correo para ver tus solicitudes y las sesiones que hospedas como voluntario."
-            : "Enter your email to see your requests and the sessions you host as a volunteer."}
+            ? "Tu correo para ver tus solicitudes y las sesiones que hospedas."
+            : "Enter your email to see your requests and the sessions you host."}
         </p>
       </div>
 

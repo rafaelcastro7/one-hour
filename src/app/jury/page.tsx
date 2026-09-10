@@ -19,8 +19,8 @@ export default function JuryPage() {
         <h1 className="text-3xl font-bold tracking-tight">{es ? "1hour — briefing del jurado" : "1hour — judge briefing"}</h1>
         <p className="text-sm text-neutral-400">
           {es
-            ? "Todo lo de abajo está medido en el pipeline en vivo, no afirmado. Pruébalo tú primero, luego lee la evidencia."
-            : "Everything below is measured on the live pipeline, not asserted. Try it yourself first, then read the evidence."}
+            ? "Todo lo de abajo está medido en el pipeline en vivo, no afirmado. Pruébalo y luego lee la evidencia."
+            : "Everything below is measured on the live pipeline, not asserted. Try it, then read the evidence."}
         </p>
       </div>
 
@@ -28,14 +28,14 @@ export default function JuryPage() {
         <h2 className="font-semibold">{es ? "Pruébalo en 2 minutos" : "Try it in 2 minutes"}</h2>
         <ol className="list-decimal list-inside space-y-1 text-sm text-neutral-300">
           <li>
-            <Link href="/request" className="text-amber-400 underline">{es ? "Pide ayuda" : "Request help"}</Link> — {es ? "escribe en español para ver la detección de idioma (responde en tu idioma)." : "write a need in Spanish to see language detection (it answers in your language)."}
+            <Link href="/request" className="text-amber-400 underline">{es ? "Pide ayuda" : "Request help"}</Link> — {es ? "escribe en español para ver la detección de idioma (responde en tu idioma)." : "write in Spanish to see language detection (it answers in your language)."}
           </li>
-          <li>{es ? "Mira las etapas en vivo + tips mientras corre el matching (~20–35s)." : "Watch the live stages + tips while matching runs (~20–35s)."}</li>
+          <li>{es ? "Mira las etapas en vivo + tips mientras corre (~20–35s)." : "Watch the live stages + tips while it matches (~20–35s)."}</li>
           <li>
-            {es ? "Confirma el match para generar una sala Daily.co real." : "Confirm the match to generate a real Daily.co video room."}
+            {es ? "Confirma el match y genera una sala Daily.co real." : "Confirm the match and get a real Daily.co room."}
           </li>
           <li>
-            {es ? "O " : "Or "}<Link href="/offer" className="text-amber-400 underline">{es ? "regístrate como voluntario" : "register as a volunteer"}</Link> {es ? "y mira la puerta humana en " : "and see the human approval gate in "}<Link href="/admin" className="text-amber-400 underline">/admin</Link>.
+            {es ? "O " : "Or "}<Link href="/offer" className="text-amber-400 underline">{es ? "regístrate como voluntario" : "register as a volunteer"}</Link> {es ? "y mira la puerta humana en " : "and see the human gate in "}<Link href="/admin" className="text-amber-400 underline">/admin</Link>.
           </li>
         </ol>
       </section>
@@ -72,8 +72,8 @@ export default function JuryPage() {
         <h2 className="font-semibold">{es ? "Por qué esto no es un wrapper LLM" : "Why this is not an LLM wrapper"}</h2>
         <p className="text-sm text-neutral-300">
           {es
-            ? "Retrieve-then-rerank: un embedding (Qwen3-Embedding-8B) reduce el pool al top-3 por similitud coseno, luego Qwen3-30B (Nebius Token Factory) decide al final y puede contradecir la similitud cuando el texto muestra que el más cercano está mal. La división de modelos es una decisión deliberada de costo/latencia: un modelo juzga una vez y el embedding escanea a todos."
-            : "Retrieve-then-rerank: an embedding (Qwen3-Embedding-8B) narrows the pool to the top-3 by cosine similarity, then Qwen3-30B (Nebius Token Factory) makes the final call and can overrule similarity when the text shows the closest match is wrong. The split is deliberate: one model judges once while embeddings scan everyone."}
+            ? "Retrieve-then-rerank: Qwen3-Embedding-8B reduce a top-3 por similitud coseno; Qwen3-30B (Nebius Token Factory) toma la decisión final y puede contradecir la similitud cuando el texto muestra que el más cercano está mal. La división es deliberada: un modelo juzga una vez mientras el embedding escanea a todos."
+            : "Retrieve-then-rerank: Qwen3-Embedding-8B narrows the pool to the top-3 by cosine similarity; Qwen3-30B (Nebius Token Factory) makes the final call and can overrule similarity when the text shows the closest match is wrong. The split is deliberate: one model judges once while embeddings scan everyone."}
         </p>
       </section>
 

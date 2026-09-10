@@ -65,11 +65,11 @@ export default function EvalPage() {
         <p className="text-sm text-neutral-400">
           {results
             ? es
-              ? `${results.cases.length} casos etiquetados, corridos contra el pipeline Nebius en vivo (llamadas reales, no mocks) — detección de categoría, similitud de embeddings y la capa LLM sobre el top-3.`
-              : `${results.cases.length} labelled cases, run against the live Nebius pipeline (real API calls, not mocks) -- category detection, embedding similarity, and the LLM decision layer over the top-3 candidates.`
+              ? `${results.cases.length} casos etiquetados vs el pipeline Nebius en vivo (llamadas reales, no mocks): detección de categoría, similitud por embeddings y la capa de decisión LLM sobre el top-3.`
+              : `${results.cases.length} labelled cases vs the live Nebius pipeline (real API calls, no mocks): category detection, embedding similarity, and the LLM decision layer over the top-3.`
             : es
-              ? "Casos etiquetados, corridos contra el pipeline Nebius en vivo (llamadas reales, no mocks)."
-              : "Labelled cases, run against the live Nebius pipeline (real API calls, not mocks)."}
+              ? "Casos etiquetados vs el pipeline Nebius en vivo (llamadas reales, no mocks)."
+              : "Labelled cases vs the live Nebius pipeline (real API calls, no mocks)."}
         </p>
       </div>
 

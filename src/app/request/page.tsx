@@ -86,7 +86,7 @@ export default function RequestPage() {
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 py-12 gap-8 bg-neutral-950 text-neutral-50">
-      <h1 className="text-2xl font-bold">{es ? "Cuéntanos qué necesitas" : "Tell us what you need"}</h1>
+      <h1 className="text-2xl font-bold">{es ? "¿Qué necesitas?" : "What do you need?"}</h1>
       <Stepper steps={[es ? "Aviso" : "Safety", "Chat", es ? "Datos" : "Details"]} current={step} />
 
       {step === "safety" && <SafetyScreen onContinue={() => setStep("chat")} />}
