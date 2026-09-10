@@ -1,3 +1,5 @@
+"use client";
+
 import { useLanguage } from "@/app/language-context";
 
 export default function DemoPage() {
