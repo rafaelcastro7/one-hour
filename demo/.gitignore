@@ -1,0 +1,6 @@
+video/
+audio/
+final/
+timeline.json
+*.mp4
+*.webm
