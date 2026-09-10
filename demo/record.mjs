@@ -85,18 +85,18 @@ async function scene1(page) {
   log("s1", "s1");
   await move(page, page.locator("h1"));
   await sleep(DUR.s1 * 1000);
-  await move(page, page.getByRole("link", { name: /i need help/i }).first());
+  await move(page, page.getByRole("link", { name: /need help|necesito ayuda/i }).first());
   await sleep(1200);
 }
 
 async function scene2(page) {
   await page.setDefaultTimeout(30000);
-  const cta = page.getByRole("link", { name: /i need help/i }).first();
+  const cta = page.getByRole("link", { name: /need help|necesito ayuda/i }).first();
   await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("h1", { timeout: 60000 });
   await sleep(800);
   await move(page, cta);
-  await page.getByRole("link", { name: /i need help/i }).first().click();
+  await page.getByRole("link", { name: /need help|necesito ayuda/i }).first().click();
   await page.waitForSelector('input[type="checkbox"]', { timeout: 20000 });
   await sleep(600);
   const cb = page.locator('input[type="checkbox"]').first();
