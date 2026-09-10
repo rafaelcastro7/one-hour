@@ -1,16 +1,26 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useLanguage } from "@/app/language-context";
 
 export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
+  // Debounce: the query fires on every keystroke with whatever is typed so
+  // far, and a partial key is (correctly) rejected server-side. In Next the
+  // rejected query surfaced as a route error that tore the page down. Commit
+  // the key only after the user pauses, so exactly one request happens — with
+  // the value they actually meant to enter.
+  const [committedKey, setCommittedKey] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setCommittedKey(adminKey), 350);
+    return () => clearTimeout(t);
+  }, [adminKey]);
   const pending = useQuery(
     api.volunteers.pendingApproval,
-    adminKey ? { adminKey } : "skip"
+    committedKey ? { adminKey: committedKey } : "skip"
   );
   const approve = useMutation(api.volunteers.approve);
   const { language } = useLanguage();
